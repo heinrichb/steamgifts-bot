@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,6 +21,11 @@ import (
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
+// pointsCap is the maximum points a steamgifts account can hold.
+// Points earned above this are wasted, so the bot should always
+// spend enough to stay below the cap.
+const pointsCap = 400
+
 // Runner runs the bot loop for one account.
 type Runner struct {
 	Name          string
@@ -31,9 +37,10 @@ type Runner struct {
 	Notifier      *notify.Notifier
 	DryRun        bool
 
-	mu       sync.RWMutex
-	status   Status
-	seenWins map[string]bool
+	mu          sync.RWMutex
+	status      Status
+	seenWins    map[string]bool
+	failedCodes map[string]bool // codes rejected by the server (Missing Base Game, etc.)
 }
 
 // Status is a snapshot of what an account's runner is doing right now.
@@ -183,6 +190,23 @@ func (r *Runner) recordEntry(g sg.Giveaway, ok bool) {
 	}
 }
 
+// recordFailedCode remembers a giveaway code that the server rejected
+// so we skip it in future cycles without wasting an HTTP request.
+func (r *Runner) recordFailedCode(code string) {
+	r.mu.Lock()
+	if r.failedCodes == nil {
+		r.failedCodes = make(map[string]bool)
+	}
+	r.failedCodes[code] = true
+	r.mu.Unlock()
+}
+
+func (r *Runner) isFailedCode(code string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.failedCodes[code]
+}
+
 // fetchPage fetches and parses a single listing page.
 func (r *Runner) fetchPage(ctx context.Context, url string) (sg.AccountState, []sg.Giveaway, error) {
 	body, err := r.Client.Get(ctx, url)
@@ -195,7 +219,6 @@ func (r *Runner) fetchPage(ctx context.Context, url string) (sg.AccountState, []
 func (r *Runner) runOnce(ctx context.Context) error {
 	minPts := r.Settings.MinPointsValue()
 	maxEntries := r.Settings.MaxEntriesValue()
-	maxPages := r.Settings.MaxPagesValue()
 	allowPinned := r.Settings.EnterPinnedValue()
 	filters := r.Settings.Filters
 	if len(filters) == 0 {
@@ -204,10 +227,9 @@ func (r *Runner) runOnce(ctx context.Context) error {
 
 	// --- Phase 1: scan all filter pages and collect joinable candidates ---
 	syncedThisCycle := false
-	estimatedCandidates := maxPages * 50 * len(filters)
-	seen := make(map[string]bool, estimatedCandidates)
+	seen := make(map[string]bool, 256)
 	wishlistCodes := make(map[string]bool)
-	candidates := make([]sg.Giveaway, 0, estimatedCandidates)
+	candidates := make([]sg.Giveaway, 0, 256)
 	var xsrf string
 	var accountLevel int
 	var latestPoints int
@@ -217,7 +239,10 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		for pageNum := 1; pageNum <= maxPages; pageNum++ {
+		// Page through all results until steamgifts returns an empty page.
+		// Safety cap prevents runaway requests if the site ever misbehaves.
+		const maxScanPages = 100
+		for pageNum := 1; pageNum <= maxScanPages; pageNum++ {
 			pageURL := sg.WithPage(basePath, pageNum)
 			page, giveaways, err := r.fetchPage(ctx, pageURL)
 			if err != nil {
@@ -229,7 +254,6 @@ func (r *Runner) runOnce(ctx context.Context) error {
 				if err := r.syncSteam(ctx, page.XSRFToken); err != nil {
 					r.Logger.Warn("steam sync failed (continuing scan)", "err", err)
 				} else {
-					// Re-fetch after sync so the listing reflects newly-owned games.
 					page, giveaways, err = r.fetchPage(ctx, pageURL)
 					if err != nil {
 						return fmt.Errorf("post-sync refetch %s p%d: %w", filter, pageNum, err)
@@ -253,12 +277,10 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			)
 
 			for _, g := range giveaways {
-				// Tag wishlist codes BEFORE dedup so games discovered
-				// on an earlier filter still get their wishlist boost.
 				if filter == sg.FilterWishlist {
 					wishlistCodes[g.Code] = true
 				}
-				if seen[g.Code] {
+				if seen[g.Code] || r.isFailedCode(g.Code) {
 					continue
 				}
 				if !g.Joinable(latestPoints, minPts, accountLevel, allowPinned) {
@@ -292,6 +314,13 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	)
 
 	// --- Phase 3: enter in score order ---
+	// If at the point cap, relax min_points so we don't waste regeneration.
+	effectiveMin := minPts
+	if latestPoints >= pointsCap {
+		effectiveMin = 0
+		r.Logger.Debug("at point cap, relaxing min_points to spend down")
+	}
+
 	points := latestPoints
 	entered := 0
 	maxPerApp := r.Settings.MaxEntriesPerAppValue()
@@ -308,7 +337,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		if maxPerApp > 0 && appEntries[c.Name] >= maxPerApp {
 			continue
 		}
-		if points-c.Cost < minPts {
+		if points-c.Cost < effectiveMin {
 			continue
 		}
 		if r.DryRun {
@@ -324,7 +353,13 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		res, err := sg.Enter(ctx, r.Client, c.Code, xsrf)
 		if err != nil {
 			r.recordEntry(c.Giveaway, false)
-			r.Logger.Warn("entry failed", "name", c.Name, "code", c.Code, "err", err)
+			// Remember permanent rejections so we don't retry next cycle.
+			if isPermanentRejection(err) {
+				r.recordFailedCode(c.Code)
+				r.Logger.Debug("skipping in future", "code", c.Code, "err", err)
+			} else {
+				r.Logger.Warn("entry failed", "name", c.Name, "code", c.Code, "err", err)
+			}
 			continue
 		}
 		r.recordEntry(c.Giveaway, true)
@@ -338,7 +373,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		r.Logger.Info("entered",
 			"name", c.Name, "code", c.Code, "cost", c.Cost,
 			"score", fmt.Sprintf("%.2f", c.Score), "points_left", points)
-		if points <= minPts {
+		if points <= effectiveMin {
 			r.Logger.Info("points at min after entry, stopping", "points", points)
 			break
 		}
@@ -351,6 +386,14 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		r.checkWins(ctx)
 	}
 	return nil
+}
+
+// isPermanentRejection returns true for server errors that won't change
+// on retry — the user is fundamentally ineligible for this giveaway.
+func isPermanentRejection(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "Missing Base Game") ||
+		strings.Contains(msg, "Level") && strings.Contains(msg, "Required")
 }
 
 func (r *Runner) checkWins(ctx context.Context) {
@@ -367,7 +410,6 @@ func (r *Runner) checkWins(ctx context.Context) {
 
 	r.mu.Lock()
 	if r.seenWins == nil {
-		// Seed with current wins so we don't spam old ones on first run.
 		r.seenWins = make(map[string]bool, len(wins))
 		for _, w := range wins {
 			r.seenWins[w.Code] = true
