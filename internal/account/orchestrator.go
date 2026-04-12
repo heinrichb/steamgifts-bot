@@ -38,10 +38,15 @@ func Build(cfg *config.Config, logger *slog.Logger, store *state.Store, notif *n
 		if err != nil {
 			return nil, fmt.Errorf("account %q: %w", acct.Name, err)
 		}
+		// Per-account scorer: start from global, override with per-account.
+		sw := cfg.Scorer
+		if settings.Scorer != nil {
+			sw = mergedScorerWeights(sw, *settings.Scorer)
+		}
 		orch.Runners = append(orch.Runners, &Runner{
 			Name:          acct.Name,
 			Settings:      settings,
-			ScorerWeights: scorerWeightsFromConfig(cfg.Scorer),
+			ScorerWeights: scorerWeightsFromConfig(sw),
 			Client:        c,
 			Logger:        log,
 			State:         store,
@@ -50,6 +55,25 @@ func Build(cfg *config.Config, logger *slog.Logger, store *state.Store, notif *n
 		})
 	}
 	return orch, nil
+}
+
+func mergedScorerWeights(base, override config.ScorerWeights) config.ScorerWeights {
+	if override.Wishlist != nil {
+		base.Wishlist = override.Wishlist
+	}
+	if override.Sniper != nil {
+		base.Sniper = override.Sniper
+	}
+	if override.SniperHours != nil {
+		base.SniperHours = override.SniperHours
+	}
+	if override.Level != nil {
+		base.Level = override.Level
+	}
+	if override.CostEfficiency != nil {
+		base.CostEfficiency = override.CostEfficiency
+	}
+	return base
 }
 
 func scorerWeightsFromConfig(sw config.ScorerWeights) scorer.Weights {

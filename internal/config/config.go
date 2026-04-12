@@ -51,16 +51,17 @@ type Config struct {
 // Pointer-typed fields signal "not set" so per-account overrides can
 // distinguish "use default" from "explicitly zero".
 type AccountSettings struct {
-	MinPoints              *int     `yaml:"min_points,omitempty"                mapstructure:"min_points"`
-	PauseMinutes           *int     `yaml:"pause_minutes,omitempty"             mapstructure:"pause_minutes"`
-	EnterPinned            *bool    `yaml:"enter_pinned,omitempty"              mapstructure:"enter_pinned"`
-	MaxEntriesPerRun       *int     `yaml:"max_entries_per_run,omitempty"       mapstructure:"max_entries_per_run"`
-	UserAgent              string   `yaml:"user_agent,omitempty"                mapstructure:"user_agent"`
-	Filters                []string `yaml:"filters,omitempty"                   mapstructure:"filters"`
-	MaxPages               *int     `yaml:"max_pages,omitempty"                 mapstructure:"max_pages"`
-	ProxyURL               string   `yaml:"proxy_url,omitempty"                 mapstructure:"proxy_url"`
-	SteamSyncEnabled       *bool    `yaml:"steam_sync_enabled,omitempty"        mapstructure:"steam_sync_enabled"`
-	SteamSyncIntervalHours *int     `yaml:"steam_sync_interval_hours,omitempty" mapstructure:"steam_sync_interval_hours"`
+	MinPoints              *int           `yaml:"min_points,omitempty"                mapstructure:"min_points"`
+	PauseMinutes           *int           `yaml:"pause_minutes,omitempty"             mapstructure:"pause_minutes"`
+	EnterPinned            *bool          `yaml:"enter_pinned,omitempty"              mapstructure:"enter_pinned"`
+	MaxEntriesPerRun       *int           `yaml:"max_entries_per_run,omitempty"       mapstructure:"max_entries_per_run"`
+	UserAgent              string         `yaml:"user_agent,omitempty"                mapstructure:"user_agent"`
+	Filters                []string       `yaml:"filters,omitempty"                   mapstructure:"filters"`
+	MaxPages               *int           `yaml:"max_pages,omitempty"                 mapstructure:"max_pages"`
+	ProxyURL               string         `yaml:"proxy_url,omitempty"                 mapstructure:"proxy_url"`
+	SteamSyncEnabled       *bool          `yaml:"steam_sync_enabled,omitempty"        mapstructure:"steam_sync_enabled"`
+	SteamSyncIntervalHours *int           `yaml:"steam_sync_interval_hours,omitempty" mapstructure:"steam_sync_interval_hours"`
+	Scorer                 *ScorerWeights `yaml:"scorer,omitempty"                    mapstructure:"scorer"`
 }
 
 // Account is a single steamgifts.com identity the bot will operate on.
