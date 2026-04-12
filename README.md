@@ -158,12 +158,15 @@ steamgifts-bot version
 ## Development
 
 ```bash
-make test       # go test -race
-make lint       # golangci-lint
-make fmt        # gofmt + goimports
-make build      # build the binary
-make run        # build + dry-run --once at debug level
-make docker     # build the Docker image locally
+make build           # build Linux binary
+make build-windows   # cross-compile Windows .exe (GUI subsystem) → dist/
+make build-all       # both
+make test            # go test -race
+make lint            # golangci-lint
+make fmt             # gofmt + goimports + prettier
+make run             # build + dry-run --once at debug level
+make docker          # build the Docker image locally
+make refresh-fixtures  # fetch real steamgifts pages into testdata/
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full developer guide.
