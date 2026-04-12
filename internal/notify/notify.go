@@ -1,6 +1,5 @@
 // Package notify sends notifications when the bot wins a giveaway.
-// Currently supports Discord webhooks; other targets (Telegram, generic
-// webhook) can be added as additional Send* functions.
+// Supports Discord webhooks and Telegram bot messages.
 package notify
 
 import (
@@ -15,21 +14,25 @@ import (
 
 // Notifier sends win notifications to configured targets.
 type Notifier struct {
-	DiscordURL string
-	httpClient *http.Client
+	DiscordURL    string
+	TelegramToken string
+	TelegramChat  string
+	httpClient    *http.Client
 }
 
-// New creates a Notifier. If discordURL is empty, notifications are disabled.
-func New(discordURL string) *Notifier {
+// New creates a Notifier. All fields are optional — empty = disabled.
+func New(discordURL, telegramToken, telegramChat string) *Notifier {
 	return &Notifier{
-		DiscordURL: discordURL,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		DiscordURL:    discordURL,
+		TelegramToken: telegramToken,
+		TelegramChat:  telegramChat,
+		httpClient:    &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
 // Enabled reports whether any notification target is configured.
 func (n *Notifier) Enabled() bool {
-	return n.DiscordURL != ""
+	return n.DiscordURL != "" || (n.TelegramToken != "" && n.TelegramChat != "")
 }
 
 // Win represents a won giveaway to notify about.
@@ -41,10 +44,18 @@ type Win struct {
 
 // SendWin sends a win notification to all configured targets.
 func (n *Notifier) SendWin(ctx context.Context, win Win) error {
-	if n.DiscordURL == "" {
-		return nil
+	var firstErr error
+	if n.DiscordURL != "" {
+		if err := n.sendDiscord(ctx, win); err != nil && firstErr == nil {
+			firstErr = err
+		}
 	}
-	return n.sendDiscord(ctx, win)
+	if n.TelegramToken != "" && n.TelegramChat != "" {
+		if err := n.sendTelegram(ctx, win); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
 
 func (n *Notifier) sendDiscord(ctx context.Context, win Win) error {
@@ -60,29 +71,44 @@ func (n *Notifier) sendDiscord(ctx context.Context, win Win) error {
 	if win.GiveawayURL != "" {
 		embed["url"] = win.GiveawayURL
 	}
+	payload := map[string]any{"embeds": []any{embed}}
+	return n.postJSON(ctx, n.DiscordURL, payload, "discord")
+}
 
-	payload := map[string]any{
-		"embeds": []any{embed},
+func (n *Notifier) sendTelegram(ctx context.Context, win Win) error {
+	text := fmt.Sprintf("🎉 *Won: %s*\nAccount: %s", win.GameName, win.AccountName)
+	if win.GiveawayURL != "" {
+		text += fmt.Sprintf("\n[View giveaway](%s)", win.GiveawayURL)
 	}
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", n.TelegramToken)
+	payload := map[string]any{
+		"chat_id":    n.TelegramChat,
+		"text":       text,
+		"parse_mode": "Markdown",
+	}
+	return n.postJSON(ctx, url, payload, "telegram")
+}
+
+func (n *Notifier) postJSON(ctx context.Context, url string, payload any, label string) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("notify: marshal: %w", err)
+		return fmt.Errorf("notify: %s marshal: %w", label, err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, n.DiscordURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("notify: build request: %w", err)
+		return fmt.Errorf("notify: %s build request: %w", label, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := n.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("notify: discord webhook: %w", err)
+		return fmt.Errorf("notify: %s: %w", label, err)
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 	}()
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("notify: discord returned %d", resp.StatusCode)
+		return fmt.Errorf("notify: %s returned %d", label, resp.StatusCode)
 	}
 	return nil
 }
