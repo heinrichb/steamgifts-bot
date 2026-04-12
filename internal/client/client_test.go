@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -85,8 +86,8 @@ func TestNon2xxReturnsHTTPError(t *testing.T) {
 
 	c := newTestClient(t, srv)
 	_, err := c.Get(context.Background(), "/")
-	httpErr, ok := err.(*HTTPError)
-	if !ok {
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) {
 		t.Fatalf("expected *HTTPError, got %T: %v", err, err)
 	}
 	if httpErr.Status != http.StatusForbidden {

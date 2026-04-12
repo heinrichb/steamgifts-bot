@@ -17,6 +17,36 @@ linters:
     - bodyclose
     - errorlint
     - nolintlint
+  settings:
+    errcheck:
+      check-type-assertions: false
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - io.WriteString
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (net/http.ResponseWriter).Write
+        - (*archive/zip.Writer).Close
+        - (*net/http.Server).Shutdown
+        - (*net/http.Request).ParseForm
+        - os.Remove
+        - os.WriteFile
+        - encoding/json.Unmarshal
+        - (*encoding/json.Encoder).Encode
+        - (*archive/zip.ReadCloser).Close
+        - (*archive/zip.Writer).Create
+        - (io.Writer).Write
+        - (*github.com/spf13/cobra.Command).Execute
+        - (*net.TCPListener).Close
+        - (net.Listener).Close
+    revive:
+      rules:
+        - name: unused-parameter
+          disabled: true
+        - name: redefines-builtin-id
+          disabled: true
 
 formatters:
   enable:

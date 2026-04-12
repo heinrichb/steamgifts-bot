@@ -93,14 +93,14 @@ func (m dashboardModel) View() string {
 		} else if !st.LastRun.IsZero() {
 			last = okStyle.Render(humanizeAgo(st.LastRun))
 		}
-		b.WriteString(fmt.Sprintf("%-16s %-16s %-8d %-12s %-22s %s\n",
+		fmt.Fprintf(&b, "%-16s %-16s %-8d %-12s %-22s %s\n",
 			truncate(st.Name, 15),
 			truncate(orDash(st.Username), 15),
 			st.Points,
 			fmt.Sprintf("%d ok / %d", st.EntriesOK, st.EntriesAttempt),
 			next,
 			last,
-		))
+		)
 	}
 
 	b.WriteString("\n")
