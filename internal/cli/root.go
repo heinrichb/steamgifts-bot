@@ -67,6 +67,7 @@ background service, or run it in Docker.`,
 		newCheckCmd(),
 		newAccountsCmd(),
 		newServiceCmd(),
+		newBackupCmd(),
 		newVersionCmd(version, commit, date),
 	)
 	return root
