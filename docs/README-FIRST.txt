@@ -4,12 +4,9 @@ Welcome to steamgifts-bot!
 If you're on Windows and just downloaded this zip:
 
   1. Extract the zip somewhere convenient (e.g. C:\steamgifts-bot)
-  2. Double-click steamgifts-bot.bat  (NOT the .exe directly)
+  2. Double-click steamgifts-bot.exe
   3. Follow the wizard — it will help you capture your steamgifts.com cookie
      and save a config file right next to the .exe
-
-  NOTE: If you double-click the .exe directly and see "This is a command
-  line tool", use the .bat file instead — it opens cmd.exe properly.
 
 If Windows SmartScreen warns you:
   - Click "More info"
