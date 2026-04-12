@@ -29,7 +29,34 @@ The current `filters:` list accepts only fixed names (`wishlist`, `dlc`, `multic
 
 The likely shape is moving `filters` from `[]string` to `[]Filter` where `Filter` is a struct with optional `type`, `copy_min`, `dlc`, `pages`, and `raw` fields. Backwards compatible via a custom unmarshal that accepts a bare string.
 
-## Smart entry / scoring engine
+## Steam account sync
+
+Steamgifts has a "Sync Account" button (in the nav dropdown and on `/account/settings/profile`) that re-syncs the account with Steam. Two big effects:
+
+- **Refunds points** for games the user has acquired since the last sync (e.g. bought on Steam, gifted, won elsewhere)
+- **Filters owned games** out of future giveaway listings so the bot stops wasting entries on duplicates
+
+The site has a hard cooldown (the UI shows "Last synced N day(s) ago" and the button is gated). We must not spam this — once every 24 hours is the right cadence.
+
+Design:
+
+- New `internal/steamgifts/sync.go` with two functions:
+  - `LastSync(client) (time.Time, error)` — fetches `/account/settings/profile` and parses the "Synced with Steam X ago" text. This is the source of truth; no local state needed.
+  - `SyncAccount(client, xsrf) error` — POSTs to whatever the sync endpoint is. Endpoint TBD (need to capture the real network request from DevTools — see below).
+- Config option:
+  - `defaults.steam_sync.enabled: true` (default on — pure win, no downside)
+  - `defaults.steam_sync.min_interval_hours: 24` (safety floor below the site's own cooldown)
+- Runner integration: at the start of each scan cycle, if `time.Since(lastSync) > min_interval_hours`, call `SyncAccount`. Log the result. If the site rejects with a cooldown error, treat as a no-op and back off.
+- Logging: a clearly-marked `account.sync` log line so users can confirm it's happening.
+
+Open question — the actual endpoint. The button is JS-driven and the request shape isn't obvious from the rendered HTML. Need to capture it from DevTools the first time we trigger it manually:
+
+  1. Open `/account/settings/profile`
+  2. F12 → Network tab
+  3. Click "Sync Account"
+  4. Copy the resulting request as cURL — that gives us URL, method, headers, and form body in one shot.
+
+Once we have that, the implementation is ~30 lines.
 
 Today the bot enters every joinable giveaway in DOM order, filter by filter. That's leaving wins on the table — a smarter strategy is to **score** each candidate and enter the highest-value ones first, until points run out.
 
