@@ -5,44 +5,69 @@ package service
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	"path/filepath"
 )
 
-const taskName = "steamgifts-bot"
+const startupFileName = "steamgifts-bot.bat"
 
-// Install registers a per-user Scheduled Task that runs the bot at logon.
-// No admin elevation is required.
+// startupFolder returns the per-user Startup directory. Anything placed
+// here runs automatically when the user logs in — no admin required.
+func startupFolder() (string, error) {
+	appdata := os.Getenv("APPDATA")
+	if appdata == "" {
+		return "", fmt.Errorf("service: %%APPDATA%% is not set")
+	}
+	return filepath.Join(appdata, "Microsoft", "Windows", "Start Menu", "Programs", "Startup"), nil
+}
+
+func startupPath() (string, error) {
+	dir, err := startupFolder()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, startupFileName), nil
+}
+
+// Install creates a small .bat in the user's Startup folder that launches
+// the bot minimized on login. No admin elevation required.
 func Install() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return "", fmt.Errorf("service: locate self: %w", err)
 	}
-	args := []string{
-		"/Create", "/F",
-		"/SC", "ONLOGON",
-		"/TN", taskName,
-		"/TR", fmt.Sprintf("\"%s\" run", exe),
-		"/RL", "LIMITED",
+	path, err := startupPath()
+	if err != nil {
+		return "", err
 	}
-	if out, err := exec.Command("schtasks", args...).CombinedOutput(); err != nil {
-		return "", fmt.Errorf("service: schtasks failed: %w (%s)", err, string(out))
+	// start "" /MIN launches the bot in a minimized console window so it
+	// doesn't pop up in the user's face on every login.
+	script := fmt.Sprintf("@echo off\r\nstart \"steamgifts-bot\" /MIN \"%s\" run\r\n", exe)
+	if err := os.WriteFile(path, []byte(script), 0o644); err != nil {
+		return "", fmt.Errorf("service: write startup script: %w", err)
 	}
-	return "Scheduled Task: " + taskName, nil
+	return path, nil
 }
 
-// Uninstall removes the Scheduled Task.
+// Uninstall removes the startup .bat.
 func Uninstall() error {
-	if out, err := exec.Command("schtasks", "/Delete", "/F", "/TN", taskName).CombinedOutput(); err != nil {
-		return fmt.Errorf("service: schtasks delete failed: %w (%s)", err, string(out))
+	path, err := startupPath()
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("service: remove startup script: %w", err)
 	}
 	return nil
 }
 
-// Status reports whether the Scheduled Task exists.
+// Status reports whether the startup .bat exists.
 func Status() (string, error) {
-	out, err := exec.Command("schtasks", "/Query", "/TN", taskName).CombinedOutput()
+	path, err := startupPath()
 	if err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(path); err != nil {
 		return "not installed", nil
 	}
-	return "installed: " + taskName + "\n" + string(out), nil
+	return fmt.Sprintf("installed at %s", path), nil
 }
