@@ -13,6 +13,7 @@ import (
 
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 	"github.com/heinrichb/steamgifts-bot/internal/config"
+	"github.com/heinrichb/steamgifts-bot/internal/scorer"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
@@ -186,28 +187,20 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		return errors.New("runner: no filters configured")
 	}
 
-	enteredThisRun := 0
+	// --- Phase 1: scan all filter pages and collect joinable candidates ---
 	syncedThisCycle := false
-	enteredThisCycle := make(map[string]bool)
-	dryRunSpend := 0
+	seen := make(map[string]bool) // dedupe by giveaway code
+	var candidates []sg.Giveaway
+	var xsrf string
 	var accountLevel int
+	var latestPoints int
 
 	for _, filter := range filters {
-		if maxEntries > 0 && enteredThisRun >= maxEntries {
-			r.Logger.Debug("max entries per run reached, stopping cycle", "max", maxEntries)
-			return nil
-		}
-
 		basePath, err := sg.FilterURL(filter)
 		if err != nil {
 			return err
 		}
-
 		for pageNum := 1; pageNum <= maxPages; pageNum++ {
-			if maxEntries > 0 && enteredThisRun >= maxEntries {
-				break
-			}
-
 			pageURL := sg.WithPage(basePath, pageNum)
 			body, err := r.Client.Get(ctx, pageURL)
 			if err != nil {
@@ -218,7 +211,6 @@ func (r *Runner) runOnce(ctx context.Context) error {
 				return fmt.Errorf("parse %s p%d: %w", filter, pageNum, err)
 			}
 
-			// Sync once per cycle on the very first page fetch.
 			if !syncedThisCycle && r.shouldSyncSteam() {
 				syncedThisCycle = true
 				if err := r.syncSteam(ctx, page.XSRFToken); err != nil {
@@ -236,6 +228,8 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			}
 
 			r.recordRun(page)
+			xsrf = page.XSRFToken
+			latestPoints = page.Points
 			if page.Level > 0 {
 				accountLevel = page.Level
 			}
@@ -248,58 +242,77 @@ func (r *Runner) runOnce(ctx context.Context) error {
 				"giveaways", len(giveaways),
 			)
 
+			for _, g := range giveaways {
+				if seen[g.Code] {
+					continue
+				}
+				if !g.Joinable(latestPoints, minPts, accountLevel, allowPinned) {
+					continue
+				}
+				seen[g.Code] = true
+				candidates = append(candidates, g)
+			}
+
 			if len(giveaways) == 0 {
 				break
 			}
-
-			points := page.Points - dryRunSpend
-			if points <= minPts {
-				r.Logger.Info("points at or below min, stopping cycle", "points", points, "min", minPts)
-				return nil
-			}
-
-			for _, g := range giveaways {
-				if maxEntries > 0 && enteredThisRun >= maxEntries {
-					break
-				}
-				if enteredThisCycle[g.Code] {
-					continue
-				}
-				if !g.Joinable(points, minPts, accountLevel, allowPinned) {
-					continue
-				}
-				if r.DryRun {
-					r.Logger.Info("dry-run: would enter",
-						"name", g.Name, "code", g.Code, "cost", g.Cost, "points_after", points-g.Cost)
-					enteredThisCycle[g.Code] = true
-					r.recordEntry(g, true)
-					points -= g.Cost
-					dryRunSpend += g.Cost
-					enteredThisRun++
-					continue
-				}
-				res, err := sg.Enter(ctx, r.Client, g.Code, page.XSRFToken)
-				if err != nil {
-					r.recordEntry(g, false)
-					r.Logger.Warn("entry failed", "name", g.Name, "code", g.Code, "err", err)
-					continue
-				}
-				enteredThisCycle[g.Code] = true
-				r.recordEntry(g, true)
-				enteredThisRun++
-				if res.PointsValue() > 0 {
-					points = res.PointsValue()
-				} else {
-					points -= g.Cost
-				}
-				r.Logger.Info("entered",
-					"name", g.Name, "code", g.Code, "cost", g.Cost, "points_left", points)
-				if points <= minPts {
-					r.Logger.Info("points at min after entry, stopping cycle", "points", points)
-					return nil
-				}
-			}
 		}
 	}
+
+	if len(candidates) == 0 {
+		r.Logger.Info("no joinable candidates found")
+		return nil
+	}
+
+	// --- Phase 2: score and sort candidates by priority ---
+	ranked := scorer.Rank(candidates)
+	r.Logger.Info("ranked candidates",
+		"total", len(ranked),
+		"top", ranked[0].Name,
+		"top_score", fmt.Sprintf("%.2f", ranked[0].Score),
+	)
+
+	// --- Phase 3: enter in score order ---
+	points := latestPoints
+	entered := 0
+	for _, c := range ranked {
+		if maxEntries > 0 && entered >= maxEntries {
+			r.Logger.Debug("max entries per run reached", "max", maxEntries)
+			break
+		}
+		if points-c.Cost < minPts {
+			continue
+		}
+		if r.DryRun {
+			r.Logger.Info("dry-run: would enter",
+				"name", c.Name, "code", c.Code, "cost", c.Cost,
+				"score", fmt.Sprintf("%.2f", c.Score), "points_after", points-c.Cost)
+			r.recordEntry(c.Giveaway, true)
+			points -= c.Cost
+			entered++
+			continue
+		}
+		res, err := sg.Enter(ctx, r.Client, c.Code, xsrf)
+		if err != nil {
+			r.recordEntry(c.Giveaway, false)
+			r.Logger.Warn("entry failed", "name", c.Name, "code", c.Code, "err", err)
+			continue
+		}
+		r.recordEntry(c.Giveaway, true)
+		entered++
+		if res.PointsValue() > 0 {
+			points = res.PointsValue()
+		} else {
+			points -= c.Cost
+		}
+		r.Logger.Info("entered",
+			"name", c.Name, "code", c.Code, "cost", c.Cost,
+			"score", fmt.Sprintf("%.2f", c.Score), "points_left", points)
+		if points <= minPts {
+			r.Logger.Info("points at min after entry, stopping", "points", points)
+			break
+		}
+	}
+	r.Logger.Info("cycle complete", "entered", entered, "points_left", points)
 	return nil
 }
