@@ -1,0 +1,31 @@
+# Binaries
+/steamgifts-bot
+/steamgifts-bot.exe
+/dist/
+/bin/
+
+# Local user config (must never be committed — contains session cookies)
+config.yaml
+config.yml
+config.local.*
+*.local.yaml
+
+# Test / coverage artifacts
+*.test
+*.out
+coverage.*
+profile.*
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# GoReleaser
+.goreleaser-tmp/
+
+# Dependencies vendored locally (we use modules)
+/vendor/

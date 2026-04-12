@@ -1,0 +1,32 @@
+# steamgifts-bot — Docker Compose deployment
+#
+# Quick start:
+#   1. cp config.example.yaml config.yaml
+#   2. Edit config.yaml and paste your PHPSESSID cookie
+#      (run `docker compose run --rm bot setup` for the interactive wizard)
+#   3. docker compose up -d
+#
+# Logs: docker compose logs -f bot
+
+services:
+  bot:
+    image: ghcr.io/heinrichb/steamgifts-bot:latest
+    # To build from source instead:
+    # build:
+    #   context: .
+    container_name: steamgifts-bot
+    restart: unless-stopped
+    # The container reads /config/config.yaml; bind-mount your local copy.
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+    # No ports — the bot only makes outbound HTTPS requests.
+    environment:
+      - TZ=UTC
+    # Run as a non-root UID inside the container; the distroless image enforces this.
+    user: "65532:65532"
+    # Read-only root FS for defense in depth.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
