@@ -249,7 +249,7 @@ func (c *Client) resolve(path string) (string, error) {
 	return base.ResolveReference(rel).String(), nil
 }
 
-// Snippet truncates a byte slice to maxSnippetLen for error messages.
+// Snippet truncates a byte slice for error messages.
 func Snippet(b []byte) string {
 	const maxLen = 200
 	if len(b) > maxLen {
