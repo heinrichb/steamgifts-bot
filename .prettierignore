@@ -4,3 +4,4 @@ vendor/
 go.sum
 testdata/
 CHANGELOG.md
+deploy/helm/*/templates/
