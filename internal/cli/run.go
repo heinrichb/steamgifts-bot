@@ -93,12 +93,14 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 		if tui || once {
-			err := orch.Run(ctx, once)
+			var runErr error
 			if tui {
-				err = runTUI(ctx, orch, once)
+				runErr = runTUI(ctx, orch, once)
+			} else {
+				runErr = orch.Run(ctx, once)
 			}
 			stop()
-			return err
+			return runErr
 		}
 
 		// Headless mode: run until SIGINT/SIGTERM or SIGHUP.
