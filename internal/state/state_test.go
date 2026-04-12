@@ -70,7 +70,7 @@ func TestConcurrentSetLastSync(t *testing.T) {
 }
 
 func TestDefaultPathFor(t *testing.T) {
-	if got := DefaultPathFor("/etc/sgbot/config.yaml"); got != "/etc/sgbot/state.json" {
+	if got := DefaultPathFor("/etc/sgbot/config.yml"); got != "/etc/sgbot/state.json" {
 		t.Errorf("got %q", got)
 	}
 	if got := DefaultPathFor(""); got != "state.json" {

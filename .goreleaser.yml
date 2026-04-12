@@ -42,7 +42,7 @@ archives:
       - LICENSE
       - README.md
       - CHANGELOG.md
-      - config.example.yaml
+      - config.example.yml
       - src: docs/README-FIRST.txt
         dst: README-FIRST.txt
         info:

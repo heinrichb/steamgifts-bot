@@ -33,7 +33,7 @@ modern terminal (cmd.exe, PowerShell, Windows Terminal, gnome-terminal).`,
 	cmd.Flags().Bool("once", false, "run a single scan cycle for each account, then exit")
 	cmd.Flags().Bool("dry-run", false, "scan and log candidates without entering any giveaway")
 	cmd.Flags().Bool("tui", false, "show a live status dashboard instead of streaming logs")
-	cmd.Flags().String("state-file", "", "path to state.json (default: beside config.yaml)")
+	cmd.Flags().String("state-file", "", "path to state.json (default: beside config.yml)")
 	return cmd
 }
 

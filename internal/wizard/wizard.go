@@ -168,7 +168,7 @@ func globalSettings(cfg *config.Config) error {
 		huh.NewGroup(
 			huh.NewNote().
 				Title("Global defaults").
-				Description("These apply to every account unless you override them later. You can edit `config.yaml` by hand any time."),
+				Description("These apply to every account unless you override them later. You can edit `config.yml` by hand any time."),
 
 			huh.NewInput().
 				Title("Minimum points to keep").

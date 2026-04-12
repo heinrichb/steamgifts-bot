@@ -42,8 +42,8 @@ steamgifts-bot service install
 
 ```bash
 # Grab the example config and edit it
-curl -O https://raw.githubusercontent.com/heinrichb/steamgifts-bot/main/config.example.yaml
-cp config.example.yaml config.yaml
+curl -O https://raw.githubusercontent.com/heinrichb/steamgifts-bot/main/config.example.yml
+cp config.example.yml config.yml
 # …add your cookie…
 
 # Grab compose file and start
@@ -86,19 +86,19 @@ The bot uses your `PHPSESSID` cookie to authenticate. The first-run wizard handl
 4. Click the `PHPSESSID` row
 5. Copy the **Value** column
 
-Paste it into `config.yaml` (`accounts[0].cookie`) or the wizard.
+Paste it into `config.yml` (`accounts[0].cookie`) or the wizard.
 
-> **Treat this cookie like a password.** It grants full access to your steamgifts account. Never commit `config.yaml`, never paste it in chat. The bot stores it with `0600` permissions.
+> **Treat this cookie like a password.** It grants full access to your steamgifts account. Never commit `config.yml`, never paste it in chat. The bot stores it with `0600` permissions.
 
 ---
 
 ## Configuration reference
 
-Every key in `config.example.yaml` can be set three ways. Precedence (highest first):
+Every key in `config.example.yml` can be set three ways. Precedence (highest first):
 
 1. CLI flag — `--min-points 100`
 2. Environment variable — `STEAMGIFTS_DEFAULTS_MIN_POINTS=100`
-3. `config.yaml`
+3. `config.yml`
 4. Built-in defaults
 
 | Key | Default | Description |

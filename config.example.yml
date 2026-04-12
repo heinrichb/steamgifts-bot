@@ -1,6 +1,6 @@
 # steamgifts-bot — example configuration
 #
-# Copy this file to `config.yaml` (or pass --config <path>) and edit.
+# Copy this file to `config.yml` (or pass --config <path>) and edit.
 # Every value here can also be set via:
 #   * an environment variable: STEAMGIFTS_<UPPER_SNAKE_KEY>
 #       e.g. STEAMGIFTS_DEFAULTS_MIN_POINTS=100
