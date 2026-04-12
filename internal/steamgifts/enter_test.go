@@ -99,3 +99,23 @@ func TestFilterURL(t *testing.T) {
 		t.Error("expected error for unknown filter")
 	}
 }
+
+func TestWithPage(t *testing.T) {
+	cases := []struct {
+		path string
+		page int
+		want string
+	}{
+		{"/giveaways/search?type=wishlist", 1, "/giveaways/search?type=wishlist"},
+		{"/giveaways/search?type=wishlist", 2, "/giveaways/search?type=wishlist&page=2"},
+		{"/giveaways/search", 1, "/giveaways/search"},
+		{"/giveaways/search", 3, "/giveaways/search?page=3"},
+		{"/giveaways/search?dlc=true", 5, "/giveaways/search?dlc=true&page=5"},
+	}
+	for _, tc := range cases {
+		got := WithPage(tc.path, tc.page)
+		if got != tc.want {
+			t.Errorf("WithPage(%q, %d) = %q, want %q", tc.path, tc.page, got, tc.want)
+		}
+	}
+}

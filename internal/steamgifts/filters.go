@@ -5,6 +5,18 @@ import (
 	"strings"
 )
 
+// WithPage appends a page number to a filter URL.
+// Page 1 returns the path unchanged.
+func WithPage(path string, page int) string {
+	if page <= 1 {
+		return path
+	}
+	if strings.Contains(path, "?") {
+		return fmt.Sprintf("%s&page=%d", path, page)
+	}
+	return fmt.Sprintf("%s?page=%d", path, page)
+}
+
 // Filter names accepted in the user's YAML `filters` list.
 // Each maps to a canonical /giveaways/search URL via FilterURL.
 const (
