@@ -121,10 +121,9 @@ func sniperScore(g sg.Giveaway, now time.Time, weight, thresholdHours float64) f
 	return weight * urgency * winRate
 }
 
-// valueScore replaces the old cost-efficiency formula. Instead of rewarding
-// cheapness (which biased toward shovelware), this rewards expected value:
-// win probability per point spent = (copies / entries) / cost.
-// Normalized to [0, weight] via a log scale so it doesn't dominate.
+// valueScore rewards expected value: win probability per point spent.
+// Formula: weight * log1p((copies / entries / cost) * 100).
+// The log scale compresses the range so high-EV outliers don't dominate.
 func valueScore(g sg.Giveaway, weight float64) float64 {
 	entries := math.Max(float64(g.Entries), 1)
 	copies := math.Max(float64(g.Copies), 1)
