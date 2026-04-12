@@ -38,9 +38,7 @@ jobs:
         run: go vet ./...
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
+        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run
 
       - name: Test
         run: go test -race -count=1 -coverprofile=coverage.out ./...
