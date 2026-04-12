@@ -61,37 +61,59 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 		return err
 	}
 
-	cfg, path, err := loadValidConfig(configPath)
-	if err != nil {
-		return err
-	}
+	sighup := sighupChan()
 
-	if statePath == "" {
-		statePath = state.DefaultPathFor(path)
-	}
-	store, err := state.Load(statePath)
-	if err != nil {
-		return fmt.Errorf("load state: %w", err)
-	}
-	notif := notify.New(cfg.DiscordWebhookURL)
-	logger.Info("loaded config",
-		"path", path,
-		"state", store.Path(),
-		"accounts", len(cfg.Accounts),
-		"dry_run", dryRun,
-		"notifications", notif.Enabled(),
-	)
+	for {
+		cfg, path, err := loadValidConfig(configPath)
+		if err != nil {
+			return err
+		}
 
-	orch, err := account.Build(cfg, logger, store, notif, dryRun)
-	if err != nil {
-		return err
-	}
+		if statePath == "" {
+			statePath = state.DefaultPathFor(path)
+		}
+		store, err := state.Load(statePath)
+		if err != nil {
+			return fmt.Errorf("load state: %w", err)
+		}
+		notif := notify.New(cfg.DiscordWebhookURL)
+		logger.Info("loaded config",
+			"path", path,
+			"state", store.Path(),
+			"accounts", len(cfg.Accounts),
+			"dry_run", dryRun,
+			"notifications", notif.Enabled(),
+		)
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+		orch, err := account.Build(cfg, logger, store, notif, dryRun)
+		if err != nil {
+			return err
+		}
 
-	if tui {
-		return runTUI(ctx, orch, once)
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+		if tui || once {
+			err := orch.Run(ctx, once)
+			if tui {
+				err = runTUI(ctx, orch, once)
+			}
+			stop()
+			return err
+		}
+
+		// Headless mode: run until SIGINT/SIGTERM or SIGHUP.
+		done := make(chan error, 1)
+		go func() { done <- orch.Run(ctx, false) }()
+
+		select {
+		case err := <-done:
+			stop()
+			return err
+		case <-sighup:
+			logger.Info("SIGHUP received — reloading config")
+			stop()   // cancel current orchestrator
+			<-done   // wait for runners to finish
+			continue // loop back to reload
+		}
 	}
-	return orch.Run(ctx, once)
 }
