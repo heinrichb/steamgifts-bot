@@ -5,20 +5,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 )
 
 // EntryResult is the JSON shape steamgifts returns from /ajax.php?do=entry_insert.
 //
-// Successful response example:
-//
-//	{"type":"success","entry_count":"43","points":"87"}
+// Steamgifts is inconsistent with the points field: success responses send
+// it as a number (87), error responses send it as a string ("398"). The
+// Points field uses any to handle both; call PointsValue() for the int.
 type EntryResult struct {
 	Type       string `json:"type"`
 	EntryCount string `json:"entry_count,omitempty"`
-	Points     int    `json:"points,omitempty"`
+	Points     any    `json:"points,omitempty"`
 	Msg        string `json:"msg,omitempty"`
+}
+
+// PointsValue returns Points as an int, handling both the int (success)
+// and string (error) JSON representations steamgifts sends.
+func (r *EntryResult) PointsValue() int {
+	switch v := r.Points.(type) {
+	case float64:
+		return int(v)
+	case string:
+		n, _ := strconv.Atoi(v)
+		return n
+	default:
+		return 0
+	}
 }
 
 // Enter submits an entry for the given giveaway code using the supplied

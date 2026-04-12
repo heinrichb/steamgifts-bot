@@ -275,8 +275,8 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			enteredThisCycle[g.Code] = true
 			r.recordEntry(g, true)
 			enteredThisRun++
-			if res.Points > 0 {
-				points = res.Points
+			if res.PointsValue() > 0 {
+				points = res.PointsValue()
 			} else {
 				points -= g.Cost
 			}

@@ -41,7 +41,7 @@ func TestEnterSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Enter: %v", err)
 	}
-	if res.Type != "success" || res.Points != 87 || res.EntryCount != "43" {
+	if res.Type != "success" || res.PointsValue() != 87 || res.EntryCount != "43" {
 		t.Errorf("unexpected result: %+v", res)
 	}
 }
@@ -55,6 +55,23 @@ func TestEnterServerError(t *testing.T) {
 	_, err := Enter(context.Background(), newClient(t, srv), "ABC1", "tok")
 	if err == nil || !strings.Contains(err.Error(), "Already entered") {
 		t.Fatalf("expected server error to surface, got: %v", err)
+	}
+}
+
+func TestEnterErrorWithStringPoints(t *testing.T) {
+	// Steamgifts sends points as a string in error responses (unlike
+	// success responses where it's an int).
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, `{"type":"error","msg":"Level 2 Required","points":"398"}`)
+	}))
+	defer srv.Close()
+
+	res, err := Enter(context.Background(), newClient(t, srv), "ABC1", "tok")
+	if err == nil || !strings.Contains(err.Error(), "Level 2 Required") {
+		t.Fatalf("expected level-required error, got: %v", err)
+	}
+	if res.PointsValue() != 398 {
+		t.Errorf("string points not parsed: got %d, want 398", res.PointsValue())
 	}
 }
 
