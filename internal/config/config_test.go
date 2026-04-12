@@ -96,7 +96,8 @@ func TestResolvedFallsBackToDefaults(t *testing.T) {
 	if r.EnterPinnedValue() {
 		t.Error("default EnterPinned should be false")
 	}
-	if len(r.Filters) != len(ValidFilters) {
-		t.Errorf("expected default filters to fall back to global list, got %v", r.Filters)
+	if len(r.Filters) != len(c.Filters) {
+		t.Errorf("expected default filters to fall back to global list (%d), got %d: %v",
+			len(c.Filters), len(r.Filters), r.Filters)
 	}
 }

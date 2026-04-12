@@ -19,12 +19,16 @@ import (
 	"time"
 )
 
-// Filter names accepted in the YAML `filters` list.
+// Filter names accepted in the YAML `filters` list. Each maps to a
+// canonical /giveaways/search URL inside the steamgifts package — see
+// internal/steamgifts/filters.go for the URL mapping.
 const (
 	FilterWishlist    = "wishlist"
 	FilterGroup       = "group"
 	FilterRecommended = "recommended"
 	FilterNew         = "new"
+	FilterDLC         = "dlc"
+	FilterMultiCopy   = "multicopy"
 	FilterAll         = "all"
 )
 
@@ -43,6 +47,8 @@ var ValidFilters = []string{
 	FilterGroup,
 	FilterRecommended,
 	FilterNew,
+	FilterDLC,
+	FilterMultiCopy,
 	FilterAll,
 }
 
