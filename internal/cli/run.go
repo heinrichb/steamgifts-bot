@@ -37,13 +37,23 @@ modern terminal (cmd.exe, PowerShell, Windows Terminal, gnome-terminal).`,
 	return cmd
 }
 
+// runBotFromMenu is called by the interactive menu with an explicit dryRun
+// flag, since the run subcommand's flags aren't registered on the root cmd.
+func runBotFromMenu(cmd *cobra.Command, dryRun bool) error {
+	return runBot(cmd, dryRun, false, false)
+}
+
 func runRun(cmd *cobra.Command, _ []string) error {
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	once, _ := cmd.Flags().GetBool("once")
+	tui, _ := cmd.Flags().GetBool("tui")
+	return runBot(cmd, dryRun, once, tui)
+}
+
+func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 	configPath, _ := cmd.Flags().GetString("config")
 	statePath, _ := cmd.Flags().GetString("state-file")
 	levelStr, _ := cmd.Flags().GetString("log-level")
-	once, _ := cmd.Flags().GetBool("once")
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	tui, _ := cmd.Flags().GetBool("tui")
 
 	logger, err := logpkg.New(os.Stderr, levelStr)
 	if err != nil {

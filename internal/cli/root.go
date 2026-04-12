@@ -12,6 +12,10 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/heinrichb/steamgifts-bot/internal/config"
+	"github.com/heinrichb/steamgifts-bot/internal/service"
+	"github.com/heinrichb/steamgifts-bot/internal/wizard"
 )
 
 // NewRootCmd builds the cobra command tree. Version metadata is injected
@@ -38,13 +42,12 @@ background service, or run it in Docker.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Smart default: config present → run; otherwise launch the wizard.
-			if findConfig() != "" {
-				return runRun(cmd, args)
+			if findConfig() == "" {
+				fmt.Fprintln(os.Stderr, "No config found — launching first-run setup wizard.")
+				fmt.Fprintln(os.Stderr, "")
+				return runSetup(cmd, args)
 			}
-			fmt.Fprintln(os.Stderr, "No config found — launching first-run setup wizard.")
-			fmt.Fprintln(os.Stderr, "")
-			return runSetup(cmd, args)
+			return runMenu(cmd, args)
 		},
 	}
 
@@ -60,6 +63,70 @@ background service, or run it in Docker.`,
 		newVersionCmd(version, commit, date),
 	)
 	return root
+}
+
+// runMenu shows the interactive menu and dispatches the chosen action.
+func runMenu(cmd *cobra.Command, args []string) error {
+	choice, err := showMenu()
+	if err != nil {
+		return err
+	}
+	switch choice {
+	case menuRun:
+		return runBotFromMenu(cmd, false)
+	case menuRunDryRun:
+		return runBotFromMenu(cmd, true)
+	case menuCheck:
+		return runCheck(cmd, args)
+	case menuAddAccount:
+		return addAccountInteractive(cmd)
+	case menuServiceInstall:
+		path, serr := service.Install()
+		if serr != nil {
+			return serr
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "✓ installed: %s\n", path)
+		return nil
+	case menuServiceStatus:
+		st, serr := service.Status()
+		if serr != nil {
+			return serr
+		}
+		fmt.Fprintln(cmd.OutOrStdout(), st)
+		return nil
+	case menuSetup:
+		return runSetup(cmd, args)
+	case menuQuit:
+		return nil
+	default:
+		return nil
+	}
+}
+
+func addAccountInteractive(cmd *cobra.Command) error {
+	configPath, _ := cmd.Flags().GetString("config")
+	cfg, path, err := loadConfig(configPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if cfg == nil {
+		d := config.Defaults()
+		cfg = &d
+		path = defaultSavePath()
+	}
+	acct, err := wizard.CaptureAccount(cmd.Context(), wizard.AccountInput{
+		DefaultName: fmt.Sprintf("account-%d", len(cfg.Accounts)+1),
+		UserAgent:   cfg.Defaults.UserAgent,
+	})
+	if err != nil {
+		return err
+	}
+	cfg.Accounts = append(cfg.Accounts, acct)
+	if err := saveConfig(cfg, path); err != nil {
+		return err
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "✓ added account %q to %s\n", acct.Name, path)
+	return nil
 }
 
 // errExitSilent is returned by subcommands that have already printed a

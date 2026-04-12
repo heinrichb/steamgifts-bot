@@ -6,6 +6,7 @@ A living list of things that would make the bot better. Not promises — just th
 
 - [ ] **Browser-helper cookie capture** — replace the DevTools step with a tiny `localhost:PORT` page that runs in the wizard. The user clicks a link, lands on a "paste cookie" form, done. Removes the most painful step entirely.
 - [ ] **Animated GIF / video** of the wizard flow, linked from the README so users can preview the experience before downloading.
+- [ ] **GUI subsystem Windows build** (`-H windowsgui`) — some Windows configurations (Windows Terminal as default, endpoint protection, etc.) intercept console `.exe` files on double-click, showing "This is a command line tool" before our code runs. Building as a GUI subsystem app and calling AllocConsole/AttachConsole ourselves would bypass this. Approach: AttachConsole(ATTACH_PARENT_PROCESS) for cmd/PowerShell launches, AllocConsole for Explorer double-click, reopen stdout/stderr to CONOUT$. This would eliminate the need for the .bat launcher.
 - [ ] **Code-signed Windows builds** (Authenticode) so SmartScreen stops warning users.
 - [ ] **macOS notarized `.app` bundle** with a real GUI launcher (double-click to run).
 - [ ] **Auto-update check** on startup with opt-in download (similar to gh, atuin, etc.).
