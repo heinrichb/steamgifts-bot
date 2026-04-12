@@ -341,11 +341,14 @@ func (r *Runner) checkWins(ctx context.Context) {
 	}
 	if r.seenWins == nil {
 		// First cycle: seed with current wins so we don't spam old ones.
+		// Seed with current wins so we don't spam old ones. Wins that
+		// occurred during bot downtime will be silently absorbed here
+		// and not notified — acceptable tradeoff for in-memory tracking.
 		r.seenWins = make(map[string]bool, len(wins))
 		for _, w := range wins {
 			r.seenWins[w.Code] = true
 		}
-		r.Logger.Debug("seeded win tracker", "existing_wins", len(wins))
+		r.Logger.Info("win tracker initialized", "existing_wins", len(wins))
 		return
 	}
 	for _, w := range wins {
