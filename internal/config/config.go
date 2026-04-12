@@ -28,6 +28,15 @@ const (
 	FilterAll         = "all"
 )
 
+// DefaultUserAgent is the User-Agent header sent on every request.
+//
+// We deliberately mimic a current real desktop browser rather than
+// identifying as "steamgifts-bot" — the site can see this string and
+// announcing ourselves would be an obvious flag. Override per-account
+// or globally via config if you want to match your own browser exactly.
+const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+	"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
 // ValidFilters is the canonical set of filter identifiers.
 var ValidFilters = []string{
 	FilterWishlist,
@@ -78,7 +87,7 @@ func Defaults() Config {
 			PauseMinutes:     &pause,
 			EnterPinned:      &pinned,
 			MaxEntriesPerRun: &maxEntries,
-			UserAgent:        "steamgifts-bot/0.1 (+https://github.com/heinrichb/steamgifts-bot)",
+			UserAgent:        DefaultUserAgent,
 		},
 		Filters: []string{
 			FilterWishlist, FilterGroup, FilterRecommended, FilterNew, FilterAll,

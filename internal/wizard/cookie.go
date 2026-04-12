@@ -127,7 +127,7 @@ func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error
 
 func validateCookie(ctx context.Context, cookie, userAgent string) (*sg.AccountState, error) {
 	if userAgent == "" {
-		userAgent = "steamgifts-bot/0.1 (+https://github.com/heinrichb/steamgifts-bot)"
+		userAgent = config.DefaultUserAgent
 	}
 	c, err := client.New(cookie, userAgent)
 	if err != nil {
