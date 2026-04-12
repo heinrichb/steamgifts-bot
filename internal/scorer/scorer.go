@@ -23,11 +23,17 @@ import (
 )
 
 const (
+	wishlistWeight       = 5.0
 	sniperWeight         = 10.0
 	sniperThresholdHours = 2.0
 	costWeight           = 1.0
 	maxCost              = 50.0
 )
+
+// Context carries per-cycle data the scorer needs beyond the giveaway itself.
+type Context struct {
+	WishlistCodes map[string]bool // giveaway codes found on the wishlist filter
+}
 
 // Candidate wraps a giveaway with its computed score.
 type Candidate struct {
@@ -38,13 +44,13 @@ type Candidate struct {
 // Rank scores and sorts a slice of giveaways, highest score first.
 // The input slice is not modified; a new sorted slice of Candidates
 // is returned.
-func Rank(giveaways []sg.Giveaway) []Candidate {
+func Rank(giveaways []sg.Giveaway, sctx Context) []Candidate {
 	now := time.Now()
 	candidates := make([]Candidate, len(giveaways))
 	for i, g := range giveaways {
 		candidates[i] = Candidate{
 			Giveaway: g,
-			Score:    score(g, now),
+			Score:    score(g, sctx, now),
 		}
 	}
 	sort.Slice(candidates, func(i, j int) bool {
@@ -53,8 +59,12 @@ func Rank(giveaways []sg.Giveaway) []Candidate {
 	return candidates
 }
 
-func score(g sg.Giveaway, now time.Time) float64 {
-	return sniperScore(g, now) + costScore(g)
+func score(g sg.Giveaway, sctx Context, now time.Time) float64 {
+	s := sniperScore(g, now) + costScore(g)
+	if sctx.WishlistCodes[g.Code] {
+		s += wishlistWeight
+	}
+	return s
 }
 
 // sniperScore boosts giveaways that are closing soon with few entries
