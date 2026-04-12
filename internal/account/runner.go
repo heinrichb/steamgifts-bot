@@ -13,6 +13,7 @@ import (
 
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 	"github.com/heinrichb/steamgifts-bot/internal/config"
+	"github.com/heinrichb/steamgifts-bot/internal/notify"
 	"github.com/heinrichb/steamgifts-bot/internal/scorer"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
@@ -24,14 +25,13 @@ type Runner struct {
 	Settings config.AccountSettings
 	Client   *client.Client
 	Logger   *slog.Logger
-	State    *state.Store // persistent per-account state (last sync time, etc.)
+	State    *state.Store
+	Notifier *notify.Notifier
+	DryRun   bool
 
-	// DryRun, when true, parses giveaways and logs candidates but never
-	// submits an entry. The wizard, `check`, and `--dry-run` all use this.
-	DryRun bool
-
-	mu     sync.RWMutex
-	status Status
+	mu       sync.RWMutex
+	status   Status
+	seenWins map[string]bool // tracks win codes already notified
 }
 
 // Status is a snapshot of what an account's runner is doing right now.
@@ -320,5 +320,46 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		}
 	}
 	r.Logger.Info("cycle complete", "entered", entered, "points_left", points)
+
+	// Check for new wins and send notifications.
+	if r.Notifier != nil && r.Notifier.Enabled() && !r.DryRun {
+		r.checkWins(ctx)
+	}
 	return nil
+}
+
+func (r *Runner) checkWins(ctx context.Context) {
+	body, err := r.Client.Get(ctx, "/giveaways/won")
+	if err != nil {
+		r.Logger.Warn("failed to check wins page", "err", err)
+		return
+	}
+	wins, err := sg.ParseWinsPage(body)
+	if err != nil {
+		r.Logger.Warn("failed to parse wins page", "err", err)
+		return
+	}
+	if r.seenWins == nil {
+		// First cycle: seed with current wins so we don't spam old ones.
+		r.seenWins = make(map[string]bool, len(wins))
+		for _, w := range wins {
+			r.seenWins[w.Code] = true
+		}
+		r.Logger.Debug("seeded win tracker", "existing_wins", len(wins))
+		return
+	}
+	for _, w := range wins {
+		if r.seenWins[w.Code] {
+			continue
+		}
+		r.seenWins[w.Code] = true
+		r.Logger.Info("🎉 won a giveaway!", "game", w.Name, "url", w.URL)
+		if err := r.Notifier.SendWin(ctx, notify.Win{
+			GameName:    w.Name,
+			GiveawayURL: "https://www.steamgifts.com" + w.URL,
+			AccountName: r.Name,
+		}); err != nil {
+			r.Logger.Warn("failed to send win notification", "err", err)
+		}
+	}
 }

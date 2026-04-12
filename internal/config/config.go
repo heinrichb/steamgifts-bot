@@ -28,9 +28,10 @@ const DefaultUserAgent = client.DefaultUserAgent
 
 // Config is the root user-facing configuration object.
 type Config struct {
-	Defaults AccountSettings `yaml:"defaults"  mapstructure:"defaults"`
-	Filters  []string        `yaml:"filters"   mapstructure:"filters"`
-	Accounts []Account       `yaml:"accounts"  mapstructure:"accounts"`
+	Defaults          AccountSettings `yaml:"defaults"              mapstructure:"defaults"`
+	Filters           []string        `yaml:"filters"               mapstructure:"filters"`
+	Accounts          []Account       `yaml:"accounts"              mapstructure:"accounts"`
+	DiscordWebhookURL string          `yaml:"discord_webhook_url"   mapstructure:"discord_webhook_url"`
 }
 
 // AccountSettings holds the per-account knobs that may be set globally

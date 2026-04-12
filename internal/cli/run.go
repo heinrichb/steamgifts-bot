@@ -11,6 +11,7 @@ import (
 
 	"github.com/heinrichb/steamgifts-bot/internal/account"
 	logpkg "github.com/heinrichb/steamgifts-bot/internal/log"
+	"github.com/heinrichb/steamgifts-bot/internal/notify"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
 )
 
@@ -72,14 +73,16 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 	if err != nil {
 		return fmt.Errorf("load state: %w", err)
 	}
+	notif := notify.New(cfg.DiscordWebhookURL)
 	logger.Info("loaded config",
 		"path", path,
 		"state", store.Path(),
 		"accounts", len(cfg.Accounts),
 		"dry_run", dryRun,
+		"notifications", notif.Enabled(),
 	)
 
-	orch, err := account.Build(cfg, logger, store, dryRun)
+	orch, err := account.Build(cfg, logger, store, notif, dryRun)
 	if err != nil {
 		return err
 	}

@@ -60,6 +60,10 @@ filters:
   - new
   - all
 
+# Discord webhook URL for win notifications. Leave empty to disable.
+# Create one at: Discord Server Settings → Integrations → Webhooks → New
+# discord_webhook_url: "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+
 # One or more accounts. Each account runs independently in its own scheduler.
 accounts:
   - name: primary
