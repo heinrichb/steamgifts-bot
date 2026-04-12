@@ -1,0 +1,54 @@
+# steamgifts-bot — example configuration
+#
+# Copy this file to `config.yaml` (or pass --config <path>) and edit.
+# Every value here can also be set via:
+#   * an environment variable: STEAMGIFTS_<UPPER_SNAKE_KEY>
+#       e.g. STEAMGIFTS_DEFAULTS_MIN_POINTS=100
+#   * a CLI flag:               --min-points 100
+# Precedence: CLI flag > env var > config file > built-in default.
+#
+# SECURITY: this file contains your steamgifts.com PHPSESSID cookie, which
+# is equivalent to your password. Keep it private. Do not commit it.
+
+defaults:
+  # Don't enter giveaways if doing so would drop your account below this
+  # point threshold. Steamgifts caps at 400 and points regenerate over time.
+  min_points: 50
+
+  # How long to wait between scan cycles for each account.
+  pause_minutes: 15
+
+  # Include pinned / featured giveaways at the top of each list.
+  enter_pinned: false
+
+  # Hard cap on entries per scan cycle (safety net).
+  max_entries_per_run: 25
+
+  # Sent as the User-Agent header.
+  user_agent: "steamgifts-bot/0.1 (+https://github.com/heinrichb/steamgifts-bot)"
+
+# Filter priority: each scan cycle walks this list in order and stops when
+# the account drops below `min_points` or hits `max_entries_per_run`.
+# Valid filters: wishlist, group, recommended, new, all
+filters:
+  - wishlist
+  - group
+  - recommended
+  - new
+  - all
+
+# One or more accounts. Each account runs independently in its own scheduler.
+accounts:
+  - name: primary
+    # Get this from your browser's DevTools: Application/Storage tab →
+    # Cookies → https://www.steamgifts.com → PHPSESSID → Value.
+    # The first-run wizard (`steamgifts-bot setup`) walks you through it.
+    cookie: "REPLACE_WITH_YOUR_PHPSESSID"
+
+    # Per-account overrides (optional). Anything omitted falls back to defaults.
+    # min_points: 100
+    # filters: [wishlist, group]
+
+  # Add more accounts by uncommenting:
+  # - name: alt
+  #   cookie: "OTHER_PHPSESSID"
