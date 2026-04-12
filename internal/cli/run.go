@@ -12,6 +12,7 @@ import (
 
 	"github.com/heinrichb/steamgifts-bot/internal/account"
 	logpkg "github.com/heinrichb/steamgifts-bot/internal/log"
+	"github.com/heinrichb/steamgifts-bot/internal/state"
 )
 
 func newRunCmd() *cobra.Command {
@@ -32,11 +33,13 @@ modern terminal (cmd.exe, PowerShell, Windows Terminal, gnome-terminal).`,
 	cmd.Flags().Bool("once", false, "run a single scan cycle for each account, then exit")
 	cmd.Flags().Bool("dry-run", false, "scan and log candidates without entering any giveaway")
 	cmd.Flags().Bool("tui", false, "show a live status dashboard instead of streaming logs")
+	cmd.Flags().String("state-file", "", "path to state.json (default: beside config.yaml)")
 	return cmd
 }
 
 func runRun(cmd *cobra.Command, _ []string) error {
 	configPath, _ := cmd.Flags().GetString("config")
+	statePath, _ := cmd.Flags().GetString("state-file")
 	levelStr, _ := cmd.Flags().GetString("log-level")
 	once, _ := cmd.Flags().GetBool("once")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
@@ -57,9 +60,22 @@ func runRun(cmd *cobra.Command, _ []string) error {
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid config (%s): %w", path, err)
 	}
-	logger.Info("loaded config", "path", path, "accounts", len(cfg.Accounts), "dry_run", dryRun)
 
-	orch, err := account.Build(cfg, logger, dryRun)
+	if statePath == "" {
+		statePath = state.DefaultPathFor(path)
+	}
+	store, err := state.Load(statePath)
+	if err != nil {
+		return fmt.Errorf("load state: %w", err)
+	}
+	logger.Info("loaded config",
+		"path", path,
+		"state", store.Path(),
+		"accounts", len(cfg.Accounts),
+		"dry_run", dryRun,
+	)
+
+	orch, err := account.Build(cfg, logger, store, dryRun)
 	if err != nil {
 		return err
 	}

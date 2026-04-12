@@ -10,6 +10,10 @@ config.yml
 config.local.*
 *.local.yaml
 
+# Persistent runtime state — last sync times, future entry history, etc.
+state.json
+.state-*.json
+
 # Test / coverage artifacts
 *.test
 *.out

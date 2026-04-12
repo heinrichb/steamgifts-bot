@@ -16,15 +16,27 @@ services:
     #   context: .
     container_name: steamgifts-bot
     restart: unless-stopped
-    # The container reads /config/config.yaml; bind-mount your local copy.
+    # config.yaml is bind-mounted read-only; the bot's persistent state
+    # (last sync times, future entry history) lives in ./state/ on the
+    # host so it survives container restarts and doesn't burn the daily
+    # Steam-sync cooldown.
+    #
+    # First-time setup:
+    #   mkdir -p state
+    #   docker compose up -d
+    #
+    # The container runs as the host user (UID/GID env vars below) so
+    # the bind-mounted ./state directory has the right ownership without
+    # any chown gymnastics. Override UID/GID in a .env file if needed.
     volumes:
       - ./config.yaml:/config/config.yaml:ro
+      - ./state:/state
+    command: ["run", "--config", "/config/config.yaml", "--state-file", "/state/state.json"]
     # No ports — the bot only makes outbound HTTPS requests.
     environment:
       - TZ=UTC
-    # Run as a non-root UID inside the container; the distroless image enforces this.
-    user: "65532:65532"
-    # Read-only root FS for defense in depth.
+    user: "${UID:-1000}:${GID:-1000}"
+    # Read-only root FS for defense in depth (state/ is the only writable mount).
     read_only: true
     cap_drop:
       - ALL
