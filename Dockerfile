@@ -40,4 +40,4 @@ COPY --from=build /out/steamgifts-bot /app/steamgifts-bot
 
 USER nonroot:nonroot
 ENTRYPOINT ["/app/steamgifts-bot"]
-CMD ["run", "--config", "/config/config.yaml"]
+CMD ["run", "--config", "/config/config.yml"]
