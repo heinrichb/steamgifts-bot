@@ -129,6 +129,10 @@ func TestJoinableLogic(t *testing.T) {
 	if !byCode["EEEE5"].Joinable(137, 0, 10, true) {
 		t.Error("EEEE5 should be joinable at level 10")
 	}
+	// Level locked but account level unknown (0): defer to server, don't block.
+	if !byCode["EEEE5"].Joinable(137, 0, 0, true) {
+		t.Error("EEEE5 should be joinable when account level is unknown (0)")
+	}
 }
 
 func TestParseListPageEmpty(t *testing.T) {

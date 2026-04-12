@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -60,15 +59,9 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 		return err
 	}
 
-	cfg, path, err := loadConfig(configPath)
+	cfg, path, err := loadValidConfig(configPath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("no config found — run `steamgifts-bot setup` to create one")
-		}
 		return err
-	}
-	if err := cfg.Validate(); err != nil {
-		return fmt.Errorf("invalid config (%s): %w", path, err)
 	}
 
 	if statePath == "" {

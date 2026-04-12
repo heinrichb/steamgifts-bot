@@ -66,13 +66,15 @@ func parseAccountState(doc *goquery.Document) (AccountState, error) {
 		st.Points = atoiSafe(pts)
 	}
 
-	// Account level: <span title="6.38">Level 6</span> near the nav points.
-	doc.Find(`span`).Each(func(_ int, s *goquery.Selection) {
+	// Account level: <span title="6.38">Level 6</span>, sibling of .nav__points.
+	// Scope to the parent of nav__points so we don't accidentally match a
+	// giveaway-row span if the site ever changes from <div> to <span>.
+	doc.Find(`.nav__points`).First().Parent().Find(`span[title]`).EachWithBreak(func(_ int, s *goquery.Selection) bool {
 		if m := levelRe.FindStringSubmatch(s.Text()); len(m) == 2 {
-			if _, hasTitle := s.Attr("title"); hasTitle {
-				st.Level = atoiSafe(m[1])
-			}
+			st.Level = atoiSafe(m[1])
+			return false
 		}
+		return true
 	})
 
 	return st, nil
