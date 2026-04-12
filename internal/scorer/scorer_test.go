@@ -82,6 +82,33 @@ func TestWishlistBoostOutranksNonWishlist(t *testing.T) {
 	}
 }
 
+func TestLevelLockedBoost(t *testing.T) {
+	now := time.Now()
+	giveaways := []sg.Giveaway{
+		{Code: "open", Name: "No Level Req", Cost: 5, Level: 0, Entries: 50, Copies: 1,
+			EndsAt: now.Add(24 * time.Hour)},
+		{Code: "locked", Name: "Level 8 Locked", Cost: 5, Level: 8, Entries: 50, Copies: 1,
+			EndsAt: now.Add(24 * time.Hour)},
+	}
+	ctx := Context{AccountLevel: 10}
+	ranked := Rank(giveaways, ctx)
+	if ranked[0].Code != "locked" {
+		t.Errorf("level-locked game should rank first, got %q (score %.2f vs %.2f)",
+			ranked[0].Code, ranked[0].Score, ranked[1].Score)
+	}
+}
+
+func TestLevelScoreZeroWhenUnknown(t *testing.T) {
+	g := sg.Giveaway{Level: 5}
+	if s := levelScore(g, 0); s != 0 {
+		t.Errorf("expected 0 with unknown account level, got %.2f", s)
+	}
+	g2 := sg.Giveaway{Level: 0}
+	if s := levelScore(g2, 5); s != 0 {
+		t.Errorf("expected 0 with no level requirement, got %.2f", s)
+	}
+}
+
 func TestRankEmptyInput(t *testing.T) {
 	ranked := Rank(nil, Context{})
 	if len(ranked) != 0 {

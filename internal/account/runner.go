@@ -271,6 +271,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	// --- Phase 2: score and sort candidates by priority ---
 	ranked := scorer.Rank(candidates, scorer.Context{
 		WishlistCodes: wishlistCodes,
+		AccountLevel:  accountLevel,
 	})
 	r.Logger.Info("ranked candidates",
 		"total", len(ranked),
