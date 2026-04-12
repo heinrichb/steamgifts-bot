@@ -155,7 +155,7 @@ func (c *Client) do(ctx context.Context, method, path string, body io.Reader, he
 	c.log.Debug("http response", "status", resp.StatusCode, "bytes", len(data))
 
 	if resp.StatusCode >= 400 {
-		return data, &HTTPError{Status: resp.StatusCode, URL: target, Body: snippet(data)}
+		return data, &HTTPError{Status: resp.StatusCode, URL: target, Body: Snippet(data)}
 	}
 	return data, nil
 }
@@ -175,10 +175,11 @@ func (c *Client) resolve(path string) (string, error) {
 	return base.ResolveReference(rel).String(), nil
 }
 
-func snippet(b []byte) string {
-	const max = 200
-	if len(b) > max {
-		return string(b[:max]) + "…"
+// Snippet truncates a byte slice to maxSnippetLen for error messages.
+func Snippet(b []byte) string {
+	const maxLen = 200
+	if len(b) > maxLen {
+		return string(b[:maxLen]) + "…"
 	}
 	return string(b)
 }

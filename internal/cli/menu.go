@@ -5,14 +5,14 @@ import (
 )
 
 const (
-	menuRun             = "run"
-	menuRunDryRun       = "dry-run"
-	menuCheck           = "check"
-	menuAddAccount      = "add-account"
-	menuServiceInstall  = "install-service"
-	menuServiceStatus   = "service-status"
-	menuSetup           = "setup"
-	menuQuit            = "quit"
+	menuRun            = "run"
+	menuRunDryRun      = "dry-run"
+	menuCheck          = "check"
+	menuAddAccount     = "add-account"
+	menuServiceInstall = "install-service"
+	menuServiceStatus  = "service-status"
+	menuSetup          = "setup"
+	menuQuit           = "quit"
 )
 
 // showMenu presents an interactive menu so users who double-click the exe

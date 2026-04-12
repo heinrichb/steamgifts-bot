@@ -105,9 +105,11 @@ func (c *Config) Resolved(idx int) AccountSettings {
 	if a.UserAgent != "" {
 		out.UserAgent = a.UserAgent
 	}
+	// Filter precedence: per-account → defaults → top-level filters.
 	if len(a.Filters) > 0 {
 		out.Filters = a.Filters
-	} else if len(out.Filters) == 0 {
+	}
+	if len(out.Filters) == 0 {
 		out.Filters = c.Filters
 	}
 	if a.SteamSyncEnabled != nil {

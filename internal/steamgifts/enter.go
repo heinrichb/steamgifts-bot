@@ -10,6 +10,8 @@ import (
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 )
 
+const ajaxPath = "/ajax.php"
+
 // EntryResult is the JSON shape steamgifts returns from /ajax.php?do=entry_insert.
 //
 // Steamgifts is inconsistent with the points field: success responses send
@@ -45,23 +47,16 @@ func Enter(ctx context.Context, c *client.Client, code, xsrf string) (*EntryResu
 		"do":         {"entry_insert"},
 		"code":       {code},
 	}
-	body, err := c.PostForm(ctx, "/ajax.php", form)
+	body, err := c.PostForm(ctx, ajaxPath, form)
 	if err != nil {
 		return nil, fmt.Errorf("enter %s: %w", code, err)
 	}
 	var res EntryResult
 	if err := json.Unmarshal(body, &res); err != nil {
-		return nil, fmt.Errorf("enter %s: decode response: %w (body: %s)", code, err, truncate(body, 200))
+		return nil, fmt.Errorf("enter %s: decode response: %w (body: %s)", code, err, client.Snippet(body))
 	}
 	if res.Type != "success" {
 		return &res, fmt.Errorf("enter %s: server returned %s: %s", code, res.Type, res.Msg)
 	}
 	return &res, nil
-}
-
-func truncate(b []byte, n int) string {
-	if len(b) > n {
-		return string(b[:n]) + "…"
-	}
-	return string(b)
 }

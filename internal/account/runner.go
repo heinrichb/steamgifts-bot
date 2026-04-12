@@ -84,10 +84,12 @@ func (r *Runner) Run(ctx context.Context, once bool) error {
 		pause := r.Settings.PauseDuration()
 		r.scheduleNext(pause)
 		r.Logger.Info("sleeping", "until", time.Now().Add(pause).Format(time.RFC3339))
+		timer := time.NewTimer(pause)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return nil
-		case <-time.After(pause):
+		case <-timer.C:
 		}
 	}
 }

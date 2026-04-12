@@ -14,6 +14,7 @@ import (
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 	"github.com/heinrichb/steamgifts-bot/internal/config"
 	logpkg "github.com/heinrichb/steamgifts-bot/internal/log"
+	"github.com/heinrichb/steamgifts-bot/internal/ratelimit"
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
@@ -92,7 +93,9 @@ func runCheck(cmd *cobra.Command, _ []string) error {
 // probeAccount fetches the front page once and returns the parsed account state.
 // Exposed inside the package so the wizard can reuse it for live cookie validation.
 func probeAccount(ctx context.Context, acct config.Account, settings config.AccountSettings) (sg.AccountState, error) {
-	c, err := client.New(acct.Cookie, settings.UserAgent)
+	c, err := client.New(acct.Cookie, settings.UserAgent,
+		client.WithLimiter(ratelimit.New(0, 0)),
+	)
 	if err != nil {
 		return sg.AccountState{}, err
 	}

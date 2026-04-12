@@ -28,13 +28,13 @@ func SyncAccount(ctx context.Context, c *client.Client, xsrf string) (*SyncResul
 		"xsrf_token": {xsrf},
 		"do":         {"sync"},
 	}
-	body, err := c.PostForm(ctx, "/ajax.php", form)
+	body, err := c.PostForm(ctx, ajaxPath, form)
 	if err != nil {
 		return nil, fmt.Errorf("sync: %w", err)
 	}
 	var res SyncResult
 	if err := json.Unmarshal(body, &res); err != nil {
-		return nil, fmt.Errorf("sync: decode response: %w (body: %s)", err, truncate(body, 200))
+		return nil, fmt.Errorf("sync: decode response: %w (body: %s)", err, client.Snippet(body))
 	}
 	if res.Type != "success" {
 		return &res, fmt.Errorf("sync: server returned %s: %s", res.Type, res.Msg)
