@@ -77,8 +77,9 @@ Components to implement, in priority order:
   - SteamSpy (free, rate-limited) for owner counts
   - Local cache (SQLite) keyed by Steam appid so we don't refetch every cycle
 - [ ] **Cost efficiency** — small tiebreaker preferring cheaper games when other scores are equal, so the bot doesn't blow all its points on one expensive entry.
+- [ ] **Optional per-Steam-app entry cap** *(default: off)* — when the same game is offered as N separate giveaways, the default is to enter *all of them*: steamgifts auto-refunds points for any still-active entries once you win the game from another listing, so entering all N costs ~1× and increases your win odds N-fold. Some users may still want to cap this — e.g. to spread points across more distinct titles, or to leave room in `max_entries_per_run` for other games. Add a config knob like `defaults.max_entries_per_app: 0` (0 = no cap, the default) and apply it in the scorer after sorting.
 
-> **Note on duplicate games across listings**: when the same game is offered as N separate giveaways, the bot enters *all of them*. This is intentional and economically correct — steamgifts automatically refunds points for any still-active entries when you win the game from another, so entering all N costs ~1× and increases your win odds N-fold. The cross-filter code dedupe only suppresses re-entry of the *same giveaway code*, not different giveaways for the same game.
+> **Note on duplicate games across listings**: by default the bot enters every unique giveaway code, including multiple giveaways for the same game. This is intentional and economically correct (see refund behavior above). The cross-filter code dedupe only suppresses re-entry of the *same giveaway code*, not different giveaways for the same game.
 - [ ] **Per-account weight overrides** — one user might run a wishlist-only sniper alt and a wide-net main on the same machine.
 
 Prerequisite features (each useful on their own):
