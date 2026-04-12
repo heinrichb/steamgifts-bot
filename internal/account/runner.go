@@ -33,7 +33,7 @@ type Runner struct {
 
 	mu       sync.RWMutex
 	status   Status
-	seenWins map[string]bool // tracks win codes already notified
+	seenWins map[string]bool
 }
 
 // Status is a snapshot of what an account's runner is doing right now.
@@ -85,8 +85,11 @@ func (r *Runner) Run(ctx context.Context, once bool) error {
 			return nil
 		}
 		pause := r.Settings.PauseDuration()
-		r.scheduleNext(pause)
-		r.Logger.Info("sleeping", "until", time.Now().Add(pause).Format(time.RFC3339))
+		nextRun := time.Now().Add(pause)
+		r.mu.Lock()
+		r.status.NextRun = nextRun
+		r.mu.Unlock()
+		r.Logger.Info("sleeping", "until", nextRun.Format(time.RFC3339))
 		timer := time.NewTimer(pause)
 		select {
 		case <-ctx.Done():
@@ -95,12 +98,6 @@ func (r *Runner) Run(ctx context.Context, once bool) error {
 		case <-timer.C:
 		}
 	}
-}
-
-func (r *Runner) scheduleNext(pause time.Duration) {
-	r.mu.Lock()
-	r.status.NextRun = time.Now().Add(pause)
-	r.mu.Unlock()
 }
 
 func (r *Runner) recordError(err error) {
@@ -186,6 +183,15 @@ func (r *Runner) recordEntry(g sg.Giveaway, ok bool) {
 	}
 }
 
+// fetchPage fetches and parses a single listing page.
+func (r *Runner) fetchPage(ctx context.Context, url string) (sg.AccountState, []sg.Giveaway, error) {
+	body, err := r.Client.Get(ctx, url)
+	if err != nil {
+		return sg.AccountState{}, nil, err
+	}
+	return sg.ParseListPage(body)
+}
+
 func (r *Runner) runOnce(ctx context.Context) error {
 	minPts := r.Settings.MinPointsValue()
 	maxEntries := r.Settings.MaxEntriesValue()
@@ -213,13 +219,9 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		}
 		for pageNum := 1; pageNum <= maxPages; pageNum++ {
 			pageURL := sg.WithPage(basePath, pageNum)
-			body, err := r.Client.Get(ctx, pageURL)
+			page, giveaways, err := r.fetchPage(ctx, pageURL)
 			if err != nil {
 				return fmt.Errorf("fetch %s p%d: %w", filter, pageNum, err)
-			}
-			page, giveaways, err := sg.ParseListPage(body)
-			if err != nil {
-				return fmt.Errorf("parse %s p%d: %w", filter, pageNum, err)
 			}
 
 			if !syncedThisCycle && r.shouldSyncSteam() {
@@ -227,13 +229,10 @@ func (r *Runner) runOnce(ctx context.Context) error {
 				if err := r.syncSteam(ctx, page.XSRFToken); err != nil {
 					r.Logger.Warn("steam sync failed (continuing scan)", "err", err)
 				} else {
-					body, err = r.Client.Get(ctx, pageURL)
+					// Re-fetch after sync so the listing reflects newly-owned games.
+					page, giveaways, err = r.fetchPage(ctx, pageURL)
 					if err != nil {
 						return fmt.Errorf("post-sync refetch %s p%d: %w", filter, pageNum, err)
-					}
-					page, giveaways, err = sg.ParseListPage(body)
-					if err != nil {
-						return fmt.Errorf("post-sync parse %s p%d: %w", filter, pageNum, err)
 					}
 				}
 			}
@@ -296,7 +295,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	points := latestPoints
 	entered := 0
 	maxPerApp := r.Settings.MaxEntriesPerAppValue()
-	appEntries := make(map[string]int) // track entries per game name
+	appEntries := make(map[string]int)
 	for _, c := range ranked {
 		if err := ctx.Err(); err != nil {
 			r.Logger.Debug("stopping entry loop", "reason", err)
@@ -348,7 +347,6 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	metrics.CyclesCompleted.WithLabelValues(r.Name).Inc()
 	metrics.CandidatesScanned.WithLabelValues(r.Name).Set(float64(len(candidates)))
 
-	// Check for new wins and send notifications.
 	if r.Notifier != nil && r.Notifier.Enabled() && !r.DryRun {
 		r.checkWins(ctx)
 	}
@@ -366,23 +364,32 @@ func (r *Runner) checkWins(ctx context.Context) {
 		r.Logger.Warn("failed to parse wins page", "err", err)
 		return
 	}
+
+	r.mu.Lock()
 	if r.seenWins == nil {
-		// Seed with current wins so we don't spam old ones. Wins during
-		// bot downtime are silently absorbed — acceptable for in-memory tracking.
+		// Seed with current wins so we don't spam old ones on first run.
 		r.seenWins = make(map[string]bool, len(wins))
 		for _, w := range wins {
 			r.seenWins[w.Code] = true
 		}
+		r.mu.Unlock()
 		r.Logger.Info("win tracker initialized", "existing_wins", len(wins))
 		return
 	}
+	r.mu.Unlock()
+
 	for _, w := range wins {
-		if r.seenWins[w.Code] {
+		r.mu.Lock()
+		already := r.seenWins[w.Code]
+		if !already {
+			r.seenWins[w.Code] = true
+		}
+		r.mu.Unlock()
+		if already {
 			continue
 		}
-		r.seenWins[w.Code] = true
 		metrics.WinsDetected.WithLabelValues(r.Name).Inc()
-		r.Logger.Info("🎉 won a giveaway!", "game", w.Name, "url", w.URL)
+		r.Logger.Info("won a giveaway!", "game", w.Name, "url", w.URL)
 		if err := r.Notifier.SendWin(ctx, notify.Win{
 			GameName:    w.Name,
 			GiveawayURL: r.Client.BaseURL() + w.URL,
