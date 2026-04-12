@@ -14,10 +14,10 @@ A living list of things that would make the bot better. Not promises — just th
 
 ## Reliability
 
+- [x] **Cloudflare challenge detection** — detects "Just a moment..." interstitial and returns a clear error instead of confusing parse failures.
+- [x] **Automatic retry with exponential backoff** — 502/503/504/429 and network errors retry up to 3× with 5s/10s/20s backoff.
 - [ ] **Captcha detection + alerting** — if steamgifts starts asking for one, pause the account and notify rather than burning the cookie.
-- [ ] **Adaptive rate limiting** based on response headers and 429s.
 - [ ] **Cookie rotation / re-auth via Steam OpenID** so users don't have to manually refresh `PHPSESSID` periodically.
-- [ ] **Soft-fail on transient HTTP errors** (network blips, 502s) with backoff instead of logging an error every cycle.
 
 ## Filter system v2
 
@@ -70,14 +70,11 @@ Sketch of how this would fit:
 
 Components to implement, in priority order:
 
-- [ ] **Wishlist boost** — large positive weight if `g.Name` is in the user's Steam wishlist. Wishlist filter already prefers these, but a boost lets a wishlist game on the `all` filter still beat random titles. Requires the wishlist-sync feature below.
-- [ ] **Sniper boost** — closing-soon + low-entry-count = high win probability. Score function: `(timeLeft < threshold) * (cost / entries)`. The closer to the deadline and the fewer entries, the higher the boost. Probably the single biggest EV win.
-- [ ] **Level-locked boost** — opt-in flag. When the user is at or above a giveaway's required level, prioritize higher-level-locked entries since they have a smaller eligible audience. Needs the parser to extract `data-level-min` (or whatever the current attribute is) and the runner to know the account's level (already on the front page).
-- [ ] **Popularity / quality boost** — score AAA / highly-rated games higher. Needs an external metadata source. Options:
-  - Steam Web API (free, no key for public app data) for review score and player count
-  - SteamSpy (free, rate-limited) for owner counts
-  - Local cache (SQLite) keyed by Steam appid so we don't refetch every cycle
-- [ ] **Cost efficiency** — small tiebreaker preferring cheaper games when other scores are equal, so the bot doesn't blow all its points on one expensive entry.
+- [x] **Wishlist boost** — games from the wishlist filter get +5.0 score, entering before random titles.
+- [x] **Sniper boost** — giveaways closing within 2 hours with few entries get up to +10.0 score.
+- [x] **Cost efficiency** — mild preference for cheaper giveaways to spread points wider.
+- [ ] **Level-locked boost** — opt-in flag. Prioritize higher-level-locked entries since they have a smaller eligible audience.
+- [ ] **Popularity / quality boost** — score AAA / highly-rated games higher. Needs an external metadata source (Steam Web API, SteamSpy) with SQLite cache.
 - [ ] **Optional per-Steam-app entry cap** _(default: off)_ — when the same game is offered as N separate giveaways, the default is to enter _all of them_: steamgifts auto-refunds points for any still-active entries once you win the game from another listing, so entering all N costs ~1× and increases your win odds N-fold. Some users may still want to cap this — e.g. to spread points across more distinct titles, or to leave room in `max_entries_per_run` for other games. Add a config knob like `defaults.max_entries_per_app: 0` (0 = no cap, the default) and apply it in the scorer after sorting.
 
 > **Note on duplicate games across listings**: by default the bot enters every unique giveaway code, including multiple giveaways for the same game. This is intentional and economically correct (see refund behavior above). The cross-filter code dedupe only suppresses re-entry of the _same giveaway code_, not different giveaways for the same game.
@@ -94,16 +91,16 @@ Prerequisite features (each useful on their own):
 - [ ] **Proxy support per account** (HTTP / SOCKS5) — useful when running many accounts.
 - [ ] **OpenVPN integration** (the original project's stretch goal) — route per-account traffic through different VPNs.
 - [ ] **SQLite state persistence** — entry history, dedupe across restarts, won-game tracking.
-- [ ] **Discord / Telegram / generic webhook notifications** when you win something.
+- [x] **Discord webhook notifications** on wins (checks /giveaways/won each cycle, sends rich embed).
 - [ ] **Wishlist sync from a Steam profile URL** — auto-update which games to prioritize.
-- [ ] **Per-giveaway scoring** (ROI: points × win-probability based on entries/copies).
+- [x] **Smart entry scorer** with sniper boost, wishlist boost, and cost efficiency.
 - [ ] **`config.yml` hot-reload** on `SIGHUP`.
 - [ ] **Backup / restore** of state directory.
 
 ## Observability
 
 - [ ] **Prometheus `/metrics` endpoint** — entries attempted, points, request latency, errors.
-- [ ] **Structured JSON logging mode** for log aggregators (slog already supports this; just needs a flag).
+- [x] **Structured JSON logging mode** (`--log-format json`).
 
 ## Operations
 

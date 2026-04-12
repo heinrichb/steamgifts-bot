@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -76,7 +77,10 @@ func (n *Notifier) sendDiscord(ctx context.Context, win Win) error {
 	if err != nil {
 		return fmt.Errorf("notify: discord webhook: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("notify: discord returned %d", resp.StatusCode)
 	}
