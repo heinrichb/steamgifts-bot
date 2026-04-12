@@ -240,6 +240,8 @@ func serviceDescription() string {
 		return "I'll add a small script to your Startup folder so the bot starts minimized when you log in. No admin required, fully reversible."
 	case "linux":
 		return "I'll write a systemd user unit and enable it. Runs as you, fully reversible."
+	case "darwin":
+		return "I'll write a LaunchAgent plist so the bot starts on login. Runs as you, fully reversible."
 	default:
 		return "Installs a small launcher so the bot starts automatically."
 	}
