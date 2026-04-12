@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="30" />
+    <title>steamgifts-bot</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0f1923;
+        color: #c5d0db;
+        padding: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 {
+        color: #7ec8e3;
+        margin-bottom: 8px;
+        font-size: 24px;
+      }
+      .subtitle {
+        color: #6b7b8d;
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+      .accounts {
+        display: grid;
+        gap: 16px;
+      }
+      .account {
+        background: #1a2736;
+        border-radius: 8px;
+        padding: 20px;
+        border-left: 4px solid #7ec8e3;
+      }
+      .account-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .account-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #e8edf2;
+      }
+      .account-username {
+        color: #6b7b8d;
+        font-size: 14px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .stat {
+        background: #0f1923;
+        border-radius: 6px;
+        padding: 12px;
+        text-align: center;
+      }
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #e8edf2;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: #6b7b8d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 4px;
+      }
+      .stat-value.points {
+        color: #4caf50;
+      }
+      .stat-value.entries {
+        color: #7ec8e3;
+      }
+      .entries-list {
+        margin-top: 12px;
+      }
+      .entries-list h3 {
+        font-size: 13px;
+        color: #6b7b8d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+      .entry {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid #1f3044;
+        font-size: 14px;
+      }
+      .entry:last-child {
+        border-bottom: none;
+      }
+      .entry-name {
+        color: #c5d0db;
+      }
+      .entry-cost {
+        color: #6b7b8d;
+        font-size: 13px;
+      }
+      .entry-time {
+        color: #4a5a6a;
+        font-size: 12px;
+      }
+      .error {
+        color: #f44336;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      .timing {
+        font-size: 13px;
+        color: #4a5a6a;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>steamgifts-bot</h1>
+    <p class="subtitle">Auto-refreshes every 30 seconds</p>
+
+    <div class="accounts">
+      {{range .Accounts}}
+      <div class="account">
+        <div class="account-header">
+          <div>
+            <span class="account-name">{{.Name}}</span>
+            {{if .Username}}
+            <span class="account-username">@{{.Username}}</span>
+            {{end}}
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-value points">{{.Points}}</div>
+            <div class="stat-label">Points</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value entries">{{.EntriesOK}}</div>
+            <div class="stat-label">Entries</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">{{.EntriesAttempt}}</div>
+            <div class="stat-label">Attempted</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">{{timeAgo .LastRun}}</div>
+            <div class="stat-label">Last Run</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">{{timeUntil .NextRun}}</div>
+            <div class="stat-label">Next Run</div>
+          </div>
+        </div>
+
+        {{if .LastError}}
+        <div class="error">Error: {{.LastError}}</div>
+        {{end}}
+
+        {{if .RecentEntries}}
+        <div class="entries-list">
+          <h3>Recent Entries</h3>
+          {{range .RecentEntries}}
+          <div class="entry">
+            <span class="entry-name">{{.Name}}</span>
+            <span class="entry-cost">{{.Cost}}P</span>
+            <span class="entry-time">{{timeAgo .When}}</span>
+          </div>
+          {{end}}
+        </div>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+  </body>
+</html>
