@@ -22,6 +22,11 @@ defaults:
   # Hard cap on entries per scan cycle (safety net).
   max_entries_per_run: 25
 
+  # How many listing pages to fetch per filter. Steamgifts shows ~50
+  # giveaways per page. Higher = more candidates but longer cycle time
+  # (each page adds a 3-8s rate-limit delay). Default 1, recommended 3.
+  max_pages: 1
+
   # Sent as the User-Agent header. The default mimics a current desktop
   # Chrome on Windows so the bot doesn't announce itself to steamgifts.
   # Override here if you want to match your own browser exactly — the

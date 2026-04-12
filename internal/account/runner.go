@@ -179,6 +179,7 @@ func (r *Runner) recordEntry(g sg.Giveaway, ok bool) {
 func (r *Runner) runOnce(ctx context.Context) error {
 	minPts := r.Settings.MinPointsValue()
 	maxEntries := r.Settings.MaxEntriesValue()
+	maxPages := r.Settings.MaxPagesValue()
 	allowPinned := r.Settings.EnterPinnedValue()
 	filters := r.Settings.Filters
 	if len(filters) == 0 {
@@ -187,12 +188,9 @@ func (r *Runner) runOnce(ctx context.Context) error {
 
 	enteredThisRun := 0
 	syncedThisCycle := false
-	// Per-cycle dedupe by giveaway code: the same listing can show up under
-	// multiple filters and we don't want to double-POST.
 	enteredThisCycle := make(map[string]bool)
-	// Carry simulated spend across filters in dry-run mode so points_after
-	// reflects cumulative cost. Stays zero in real mode (server is the truth).
 	dryRunSpend := 0
+	var accountLevel int
 
 	for _, filter := range filters {
 		if maxEntries > 0 && enteredThisRun >= maxEntries {
@@ -200,94 +198,106 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			return nil
 		}
 
-		path, err := sg.FilterURL(filter)
+		basePath, err := sg.FilterURL(filter)
 		if err != nil {
 			return err
 		}
-		body, err := r.Client.Get(ctx, path)
-		if err != nil {
-			return fmt.Errorf("fetch %s: %w", filter, err)
-		}
-		page, giveaways, err := sg.ParseListPage(body)
-		if err != nil {
-			return fmt.Errorf("parse %s: %w", filter, err)
-		}
 
-		// Sync once per cycle, piggybacking on the xsrf token from the
-		// first filter, then re-read the same filter so the loop sees
-		// post-sync points and giveaway list.
-		if !syncedThisCycle && r.shouldSyncSteam() {
-			syncedThisCycle = true
-			if err := r.syncSteam(ctx, page.XSRFToken); err != nil {
-				r.Logger.Warn("steam sync failed (continuing scan)", "err", err)
-			} else {
-				body, err = r.Client.Get(ctx, path)
-				if err != nil {
-					return fmt.Errorf("post-sync refetch %s: %w", filter, err)
-				}
-				page, giveaways, err = sg.ParseListPage(body)
-				if err != nil {
-					return fmt.Errorf("post-sync parse %s: %w", filter, err)
+		for pageNum := 1; pageNum <= maxPages; pageNum++ {
+			if maxEntries > 0 && enteredThisRun >= maxEntries {
+				break
+			}
+
+			pageURL := sg.WithPage(basePath, pageNum)
+			body, err := r.Client.Get(ctx, pageURL)
+			if err != nil {
+				return fmt.Errorf("fetch %s p%d: %w", filter, pageNum, err)
+			}
+			page, giveaways, err := sg.ParseListPage(body)
+			if err != nil {
+				return fmt.Errorf("parse %s p%d: %w", filter, pageNum, err)
+			}
+
+			// Sync once per cycle on the very first page fetch.
+			if !syncedThisCycle && r.shouldSyncSteam() {
+				syncedThisCycle = true
+				if err := r.syncSteam(ctx, page.XSRFToken); err != nil {
+					r.Logger.Warn("steam sync failed (continuing scan)", "err", err)
+				} else {
+					body, err = r.Client.Get(ctx, pageURL)
+					if err != nil {
+						return fmt.Errorf("post-sync refetch %s p%d: %w", filter, pageNum, err)
+					}
+					page, giveaways, err = sg.ParseListPage(body)
+					if err != nil {
+						return fmt.Errorf("post-sync parse %s p%d: %w", filter, pageNum, err)
+					}
 				}
 			}
-		}
 
-		r.recordRun(page)
-		r.Logger.Info("scanned filter",
-			"filter", filter,
-			"points", page.Points,
-			"level", page.Level,
-			"username", page.Username,
-			"giveaways", len(giveaways),
-		)
+			r.recordRun(page)
+			if page.Level > 0 {
+				accountLevel = page.Level
+			}
 
-		points := page.Points - dryRunSpend
-		if points <= minPts {
-			r.Logger.Info("points at or below min, skipping further filters", "points", points, "min", minPts)
-			return nil
-		}
+			r.Logger.Info("scanned filter",
+				"filter", filter,
+				"page", pageNum,
+				"points", page.Points,
+				"level", accountLevel,
+				"giveaways", len(giveaways),
+			)
 
-		for _, g := range giveaways {
-			if maxEntries > 0 && enteredThisRun >= maxEntries {
+			if len(giveaways) == 0 {
+				break
+			}
+
+			points := page.Points - dryRunSpend
+			if points <= minPts {
+				r.Logger.Info("points at or below min, stopping cycle", "points", points, "min", minPts)
 				return nil
 			}
-			if enteredThisCycle[g.Code] {
-				r.Logger.Debug("skipping duplicate across filters",
-					"name", g.Name, "code", g.Code, "filter", filter)
-				continue
-			}
-			if !g.Joinable(points, minPts, page.Level, allowPinned) {
-				continue
-			}
-			if r.DryRun {
-				r.Logger.Info("dry-run: would enter",
-					"name", g.Name, "code", g.Code, "cost", g.Cost, "points_after", points-g.Cost)
+
+			for _, g := range giveaways {
+				if maxEntries > 0 && enteredThisRun >= maxEntries {
+					break
+				}
+				if enteredThisCycle[g.Code] {
+					continue
+				}
+				if !g.Joinable(points, minPts, accountLevel, allowPinned) {
+					continue
+				}
+				if r.DryRun {
+					r.Logger.Info("dry-run: would enter",
+						"name", g.Name, "code", g.Code, "cost", g.Cost, "points_after", points-g.Cost)
+					enteredThisCycle[g.Code] = true
+					r.recordEntry(g, true)
+					points -= g.Cost
+					dryRunSpend += g.Cost
+					enteredThisRun++
+					continue
+				}
+				res, err := sg.Enter(ctx, r.Client, g.Code, page.XSRFToken)
+				if err != nil {
+					r.recordEntry(g, false)
+					r.Logger.Warn("entry failed", "name", g.Name, "code", g.Code, "err", err)
+					continue
+				}
 				enteredThisCycle[g.Code] = true
 				r.recordEntry(g, true)
-				points -= g.Cost
-				dryRunSpend += g.Cost
 				enteredThisRun++
-				continue
-			}
-			res, err := sg.Enter(ctx, r.Client, g.Code, page.XSRFToken)
-			if err != nil {
-				r.recordEntry(g, false)
-				r.Logger.Warn("entry failed", "name", g.Name, "code", g.Code, "err", err)
-				continue
-			}
-			enteredThisCycle[g.Code] = true
-			r.recordEntry(g, true)
-			enteredThisRun++
-			if res.PointsValue() > 0 {
-				points = res.PointsValue()
-			} else {
-				points -= g.Cost
-			}
-			r.Logger.Info("entered",
-				"name", g.Name, "code", g.Code, "cost", g.Cost, "points_left", points)
-			if points <= minPts {
-				r.Logger.Info("points at min after entry, stopping cycle", "points", points)
-				return nil
+				if res.PointsValue() > 0 {
+					points = res.PointsValue()
+				} else {
+					points -= g.Cost
+				}
+				r.Logger.Info("entered",
+					"name", g.Name, "code", g.Code, "cost", g.Cost, "points_left", points)
+				if points <= minPts {
+					r.Logger.Info("points at min after entry, stopping cycle", "points", points)
+					return nil
+				}
 			}
 		}
 	}

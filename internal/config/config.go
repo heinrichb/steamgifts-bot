@@ -45,6 +45,7 @@ type AccountSettings struct {
 	MaxEntriesPerRun       *int     `yaml:"max_entries_per_run,omitempty"       mapstructure:"max_entries_per_run"`
 	UserAgent              string   `yaml:"user_agent,omitempty"                mapstructure:"user_agent"`
 	Filters                []string `yaml:"filters,omitempty"                   mapstructure:"filters"`
+	MaxPages               *int     `yaml:"max_pages,omitempty"                 mapstructure:"max_pages"`
 	SteamSyncEnabled       *bool    `yaml:"steam_sync_enabled,omitempty"        mapstructure:"steam_sync_enabled"`
 	SteamSyncIntervalHours *int     `yaml:"steam_sync_interval_hours,omitempty" mapstructure:"steam_sync_interval_hours"`
 }
@@ -63,6 +64,7 @@ func Defaults() Config {
 	pause := 15
 	pinned := false
 	maxEntries := 25
+	maxPages := 1
 	syncEnabled := true
 	syncInterval := 24
 	return Config{
@@ -72,6 +74,7 @@ func Defaults() Config {
 			EnterPinned:            &pinned,
 			MaxEntriesPerRun:       &maxEntries,
 			UserAgent:              DefaultUserAgent,
+			MaxPages:               &maxPages,
 			SteamSyncEnabled:       &syncEnabled,
 			SteamSyncIntervalHours: &syncInterval,
 		},
@@ -112,6 +115,9 @@ func (c *Config) Resolved(idx int) AccountSettings {
 	if len(out.Filters) == 0 {
 		out.Filters = c.Filters
 	}
+	if a.MaxPages != nil {
+		out.MaxPages = a.MaxPages
+	}
 	if a.SteamSyncEnabled != nil {
 		out.SteamSyncEnabled = a.SteamSyncEnabled
 	}
@@ -119,6 +125,14 @@ func (c *Config) Resolved(idx int) AccountSettings {
 		out.SteamSyncIntervalHours = a.SteamSyncIntervalHours
 	}
 	return out
+}
+
+// MaxPagesValue returns how many listing pages to fetch per filter.
+func (s AccountSettings) MaxPagesValue() int {
+	if s.MaxPages == nil || *s.MaxPages < 1 {
+		return 1
+	}
+	return *s.MaxPages
 }
 
 // SteamSyncEnabledValue returns whether automatic Steam sync is enabled.
