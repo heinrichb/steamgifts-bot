@@ -52,10 +52,10 @@ Design:
 
 Open question — the actual endpoint. The button is JS-driven and the request shape isn't obvious from the rendered HTML. Need to capture it from DevTools the first time we trigger it manually:
 
-  1. Open `/account/settings/profile`
-  2. F12 → Network tab
-  3. Click "Sync Account"
-  4. Copy the resulting request as cURL — that gives us URL, method, headers, and form body in one shot.
+1. Open `/account/settings/profile`
+2. F12 → Network tab
+3. Click "Sync Account"
+4. Copy the resulting request as cURL — that gives us URL, method, headers, and form body in one shot.
 
 Once we have that, the implementation is ~30 lines.
 
@@ -78,9 +78,10 @@ Components to implement, in priority order:
   - SteamSpy (free, rate-limited) for owner counts
   - Local cache (SQLite) keyed by Steam appid so we don't refetch every cycle
 - [ ] **Cost efficiency** — small tiebreaker preferring cheaper games when other scores are equal, so the bot doesn't blow all its points on one expensive entry.
-- [ ] **Optional per-Steam-app entry cap** *(default: off)* — when the same game is offered as N separate giveaways, the default is to enter *all of them*: steamgifts auto-refunds points for any still-active entries once you win the game from another listing, so entering all N costs ~1× and increases your win odds N-fold. Some users may still want to cap this — e.g. to spread points across more distinct titles, or to leave room in `max_entries_per_run` for other games. Add a config knob like `defaults.max_entries_per_app: 0` (0 = no cap, the default) and apply it in the scorer after sorting.
+- [ ] **Optional per-Steam-app entry cap** _(default: off)_ — when the same game is offered as N separate giveaways, the default is to enter _all of them_: steamgifts auto-refunds points for any still-active entries once you win the game from another listing, so entering all N costs ~1× and increases your win odds N-fold. Some users may still want to cap this — e.g. to spread points across more distinct titles, or to leave room in `max_entries_per_run` for other games. Add a config knob like `defaults.max_entries_per_app: 0` (0 = no cap, the default) and apply it in the scorer after sorting.
 
-> **Note on duplicate games across listings**: by default the bot enters every unique giveaway code, including multiple giveaways for the same game. This is intentional and economically correct (see refund behavior above). The cross-filter code dedupe only suppresses re-entry of the *same giveaway code*, not different giveaways for the same game.
+> **Note on duplicate games across listings**: by default the bot enters every unique giveaway code, including multiple giveaways for the same game. This is intentional and economically correct (see refund behavior above). The cross-filter code dedupe only suppresses re-entry of the _same giveaway code_, not different giveaways for the same game.
+
 - [ ] **Per-account weight overrides** — one user might run a wishlist-only sniper alt and a wide-net main on the same machine.
 
 Prerequisite features (each useful on their own):

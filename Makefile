@@ -1,4 +1,4 @@
-.PHONY: build test lint fmt vet tidy run check clean docker
+.PHONY: build test lint fmt fmt-check vet tidy run check clean docker
 
 BINARY := steamgifts-bot
 PKG    := ./...
@@ -15,6 +15,13 @@ lint:
 fmt:
 	gofmt -s -w .
 	go run golang.org/x/tools/cmd/goimports@latest -w .
+	npx --yes prettier --write '**/*.{yml,md,json}' --ignore-path .prettierignore
+
+fmt-check:
+	@echo "=== gofmt ==="
+	@test -z "$$(gofmt -l .)" || (gofmt -l . && exit 1)
+	@echo "=== prettier ==="
+	npx --yes prettier --check '**/*.{yml,md,json}' --ignore-path .prettierignore
 
 vet:
 	go vet $(PKG)
