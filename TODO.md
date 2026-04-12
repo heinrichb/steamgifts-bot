@@ -58,7 +58,7 @@ A living list of things that would make the bot better. Not promises — just th
 
 ## Operations
 
-- [ ] **Helm chart** for k8s users
+- [x] **Helm chart** — `deploy/helm/steamgifts-bot/` with config Secret, state PVC, metrics+dashboard
 - [x] **Web UI dashboard** — `--dashboard-addr :8080` with auto-refresh status page
 
 ## Internals

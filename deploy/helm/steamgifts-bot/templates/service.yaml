@@ -1,0 +1,27 @@
+{{- if or .Values.metrics.enabled .Values.dashboard.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: steamgifts-bot
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  ports:
+    {{- if .Values.metrics.enabled }}
+    - port: {{ .Values.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
+    {{- if .Values.dashboard.enabled }}
+    - port: {{ .Values.dashboard.port }}
+      targetPort: dashboard
+      protocol: TCP
+      name: dashboard
+    {{- end }}
+  selector:
+    app.kubernetes.io/name: steamgifts-bot
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
