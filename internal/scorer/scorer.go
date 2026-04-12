@@ -34,24 +34,15 @@ type Weights struct {
 	Cost        float64
 }
 
-// WithDefaults returns a copy with zero values replaced by built-in defaults.
-func (w Weights) WithDefaults() Weights {
-	if w.Wishlist == 0 {
-		w.Wishlist = DefaultWishlistWeight
+// DefaultWeights returns a Weights with all built-in defaults populated.
+func DefaultWeights() Weights {
+	return Weights{
+		Wishlist:    DefaultWishlistWeight,
+		Sniper:      DefaultSniperWeight,
+		SniperHours: DefaultSniperHours,
+		Level:       DefaultLevelWeight,
+		Cost:        DefaultCostWeight,
 	}
-	if w.Sniper == 0 {
-		w.Sniper = DefaultSniperWeight
-	}
-	if w.SniperHours == 0 {
-		w.SniperHours = DefaultSniperHours
-	}
-	if w.Level == 0 {
-		w.Level = DefaultLevelWeight
-	}
-	if w.Cost == 0 {
-		w.Cost = DefaultCostWeight
-	}
-	return w
 }
 
 // Context carries per-cycle data the scorer needs beyond the giveaway itself.

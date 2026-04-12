@@ -17,7 +17,7 @@ import (
 // Orchestrator owns one Runner per configured account and starts/stops them
 // as a group.
 type Orchestrator struct {
-	Runners []*Runner
+	runners []*Runner
 }
 
 // Build constructs an Orchestrator from a Config. Each account gets its own
@@ -43,7 +43,7 @@ func Build(cfg *config.Config, logger *slog.Logger, store *state.Store, notif *n
 		if settings.Scorer != nil {
 			sw = mergedScorerWeights(sw, *settings.Scorer)
 		}
-		orch.Runners = append(orch.Runners, &Runner{
+		orch.runners = append(orch.runners, &Runner{
 			Name:          acct.Name,
 			Settings:      settings,
 			ScorerWeights: scorerWeightsFromConfig(sw),
@@ -109,8 +109,8 @@ func scorerWeightsFromConfig(sw config.ScorerWeights) scorer.Weights {
 // or every once-mode runner has finished.
 func (o *Orchestrator) Run(ctx context.Context, once bool) error {
 	var wg sync.WaitGroup
-	errs := make(chan error, len(o.Runners))
-	for _, r := range o.Runners {
+	errs := make(chan error, len(o.runners))
+	for _, r := range o.runners {
 		r := r
 		wg.Add(1)
 		go func() {
@@ -133,8 +133,8 @@ func (o *Orchestrator) Run(ctx context.Context, once bool) error {
 
 // Snapshot returns the live status of every runner — used by the TUI.
 func (o *Orchestrator) Snapshot() []Status {
-	out := make([]Status, len(o.Runners))
-	for i, r := range o.Runners {
+	out := make([]Status, len(o.runners))
+	for i, r := range o.runners {
 		out[i] = r.Snapshot()
 	}
 	return out

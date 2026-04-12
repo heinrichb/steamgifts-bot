@@ -13,7 +13,7 @@ import (
 
 	"github.com/heinrichb/steamgifts-bot/internal/account"
 	logpkg "github.com/heinrichb/steamgifts-bot/internal/log"
-	metricspkg "github.com/heinrichb/steamgifts-bot/internal/metrics"
+	metrics "github.com/heinrichb/steamgifts-bot/internal/metrics"
 	"github.com/heinrichb/steamgifts-bot/internal/notify"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
 	"github.com/heinrichb/steamgifts-bot/internal/web"
@@ -98,7 +98,7 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 		metricsCtx, metricsCancel := context.WithCancel(context.Background())
 		defer metricsCancel()
 		go func() {
-			if err := metricspkg.Serve(metricsCtx, metricsAddr); err != nil {
+			if err := metrics.Serve(metricsCtx, metricsAddr); err != nil {
 				logger.Error("metrics server failed", "err", err)
 			}
 		}()

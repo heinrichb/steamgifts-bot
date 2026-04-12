@@ -10,7 +10,10 @@ import (
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 )
 
-const ajaxPath = "/ajax.php"
+const (
+	ajaxPath            = "/ajax.php"
+	responseTypeSuccess = "success"
+)
 
 // EntryResult is the JSON shape steamgifts returns from /ajax.php?do=entry_insert.
 //
@@ -55,7 +58,7 @@ func Enter(ctx context.Context, c *client.Client, code, xsrf string) (*EntryResu
 	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, fmt.Errorf("enter %s: decode response: %w (body: %s)", code, err, client.Snippet(body))
 	}
-	if res.Type != "success" {
+	if res.Type != responseTypeSuccess {
 		return &res, fmt.Errorf("enter %s: server returned %s: %s", code, res.Type, res.Msg)
 	}
 	return &res, nil

@@ -17,7 +17,7 @@ func TestRankPrefersSnipeable(t *testing.T) {
 		{Code: "cheap", Name: "Cheap Far Out", Cost: 1, Entries: 100, Copies: 1,
 			EndsAt: now.Add(48 * time.Hour)},
 	}
-	ranked := Rank(giveaways, Context{Weights: Weights{}.WithDefaults()})
+	ranked := Rank(giveaways, Context{Weights: DefaultWeights()})
 	if ranked[0].Code != "sniper" {
 		t.Errorf("expected sniper first, got %q (score %.2f)", ranked[0].Code, ranked[0].Score)
 	}
@@ -69,7 +69,7 @@ func TestWishlistBoostOutranksNonWishlist(t *testing.T) {
 	}
 	ctx := Context{
 		WishlistCodes: map[string]bool{"wanted": true},
-		Weights:       Weights{}.WithDefaults(),
+		Weights:       DefaultWeights(),
 	}
 	ranked := Rank(giveaways, ctx)
 	if ranked[0].Code != "wanted" {
@@ -85,7 +85,7 @@ func TestLevelLockedBoost(t *testing.T) {
 		{Code: "locked", Name: "Level 8 Locked", Cost: 5, Level: 8, Entries: 50, Copies: 1,
 			EndsAt: now.Add(24 * time.Hour)},
 	}
-	ctx := Context{AccountLevel: 10, Weights: Weights{}.WithDefaults()}
+	ctx := Context{AccountLevel: 10, Weights: DefaultWeights()}
 	ranked := Rank(giveaways, ctx)
 	if ranked[0].Code != "locked" {
 		t.Errorf("level-locked game should rank first, got %q", ranked[0].Code)
@@ -129,7 +129,7 @@ func TestCustomWeightsOverrideDefaults(t *testing.T) {
 }
 
 func TestRankEmptyInput(t *testing.T) {
-	ranked := Rank(nil, Context{Weights: Weights{}.WithDefaults()})
+	ranked := Rank(nil, Context{Weights: DefaultWeights()})
 	if len(ranked) != 0 {
 		t.Errorf("expected empty, got %d", len(ranked))
 	}

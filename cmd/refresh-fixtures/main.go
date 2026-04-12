@@ -49,7 +49,10 @@ func main() {
 
 	ctx := context.Background()
 	dir := filepath.Join("internal", "steamgifts", "testdata")
-	os.MkdirAll(dir, 0o755)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
 
 	pages := map[string]string{
 		"list_real_all.html":      "/giveaways/search",

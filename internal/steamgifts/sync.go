@@ -36,7 +36,7 @@ func SyncAccount(ctx context.Context, c *client.Client, xsrf string) (*SyncResul
 	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, fmt.Errorf("sync: decode response: %w (body: %s)", err, client.Snippet(body))
 	}
-	if res.Type != "success" {
+	if res.Type != responseTypeSuccess {
 		return &res, fmt.Errorf("sync: server returned %s: %s", res.Type, res.Msg)
 	}
 	return &res, nil

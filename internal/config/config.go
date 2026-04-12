@@ -22,10 +22,6 @@ import (
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
-// DefaultUserAgent re-exports client.DefaultUserAgent so legacy callers
-// still have a stable import. New code should prefer client.DefaultUserAgent.
-const DefaultUserAgent = client.DefaultUserAgent
-
 // ScorerWeights controls the relative priority of each scoring component.
 // Zero values fall back to built-in defaults in the scorer package.
 type ScorerWeights struct {
@@ -90,7 +86,7 @@ func Defaults() Config {
 			PauseMinutes:           &pause,
 			EnterPinned:            &pinned,
 			MaxEntriesPerRun:       &maxEntries,
-			UserAgent:              DefaultUserAgent,
+			UserAgent:              client.DefaultUserAgent,
 			MaxPages:               &maxPages,
 			SteamSyncEnabled:       &syncEnabled,
 			SteamSyncIntervalHours: &syncInterval,

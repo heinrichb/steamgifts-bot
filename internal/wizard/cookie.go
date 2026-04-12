@@ -121,7 +121,7 @@ func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error
 
 func validateCookie(ctx context.Context, cookie, userAgent string) (*sg.AccountState, error) {
 	if userAgent == "" {
-		userAgent = config.DefaultUserAgent
+		userAgent = client.DefaultUserAgent
 	}
 	c, err := client.New(cookie, userAgent)
 	if err != nil {
