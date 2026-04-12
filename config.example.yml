@@ -86,6 +86,9 @@ accounts:
     # min_points: 100
     # filters: [wishlist, group]
     # proxy_url: "socks5://127.0.0.1:1080"  # per-account HTTP or SOCKS5 proxy
+    # scorer:                               # per-account scorer weight overrides
+    #   wishlist: 0                          # e.g. disable wishlist boost for this account
+    #   sniper: 20                           # e.g. aggressive sniping on an alt
 
   # Add more accounts by uncommenting:
   # - name: alt
