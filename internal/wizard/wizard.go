@@ -53,7 +53,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 
 	editing := len(opts.Config.Accounts) > 0
 	if editing {
-		var keepExisting bool
+		keepExisting := true
 		err := huh.NewConfirm().
 			Title(fmt.Sprintf("Found %d existing account(s) in your config.", len(opts.Config.Accounts))).
 			Description("Keep them and just add more, or start fresh?").
@@ -104,7 +104,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		return Result{}, fmt.Errorf("the wizard produced an invalid config: %w", err)
 	}
 
-	var save bool
+	save := true
 	err := huh.NewConfirm().
 		Title(fmt.Sprintf("Save config to:\n  %s", opts.SavePath)).
 		Description("Existing files at this path will be overwritten.").
@@ -132,7 +132,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 }
 
 func welcome(_ context.Context) error {
-	var ready bool
+	ready := true
 	return huh.NewConfirm().
 		Title("Welcome to steamgifts-bot 👋").
 		Description(strings.Join([]string{
@@ -204,7 +204,7 @@ func offerService(_ context.Context) error {
 	if !service.Supported() {
 		return nil
 	}
-	var install bool
+	install := true
 	if err := huh.NewConfirm().
 		Title("Install as a background service?").
 		Description(serviceDescription()).
