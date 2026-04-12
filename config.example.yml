@@ -74,6 +74,11 @@ filters:
 #   level: 3.0            # boost for level-locked giveaways (fewer eligible users)
 #   cost_efficiency: 1.0  # mild preference for cheaper entries to spread points
 
+# --- Observability (optional) ---
+# Prometheus metrics endpoint. Pass --metrics-addr :9090 (or any port)
+# to expose /metrics for scraping by Prometheus/Grafana.
+# In Docker, also add the port mapping in docker-compose.yml.
+
 # --- Notifications (optional) ---
 # Discord webhook URL for win notifications.
 # Create one at: Discord Server Settings → Integrations → Webhooks → New

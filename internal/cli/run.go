@@ -11,6 +11,7 @@ import (
 
 	"github.com/heinrichb/steamgifts-bot/internal/account"
 	logpkg "github.com/heinrichb/steamgifts-bot/internal/log"
+	metricspkg "github.com/heinrichb/steamgifts-bot/internal/metrics"
 	"github.com/heinrichb/steamgifts-bot/internal/notify"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
 )
@@ -34,6 +35,7 @@ modern terminal (cmd.exe, PowerShell, Windows Terminal, gnome-terminal).`,
 	cmd.Flags().Bool("dry-run", false, "scan and log candidates without entering any giveaway")
 	cmd.Flags().Bool("tui", false, "show a live status dashboard instead of streaming logs")
 	cmd.Flags().String("state-file", "", "path to state.json (default: beside config.yml)")
+	cmd.Flags().String("metrics-addr", "", "address for Prometheus /metrics (e.g. :9090). Disabled if empty.")
 	return cmd
 }
 
@@ -55,10 +57,22 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 	statePath, _ := cmd.Flags().GetString("state-file")
 	levelStr, _ := cmd.Flags().GetString("log-level")
 	logFormat, _ := cmd.Flags().GetString("log-format")
+	metricsAddr, _ := cmd.Flags().GetString("metrics-addr")
 
 	logger, err := logpkg.New(os.Stderr, levelStr, logFormat)
 	if err != nil {
 		return err
+	}
+
+	if metricsAddr != "" {
+		logger.Info("starting metrics server", "addr", metricsAddr)
+		metricsCtx, metricsCancel := context.WithCancel(context.Background())
+		defer metricsCancel()
+		go func() {
+			if err := metricspkg.Serve(metricsCtx, metricsAddr); err != nil {
+				logger.Error("metrics server failed", "err", err)
+			}
+		}()
 	}
 
 	sighup := sighupChan()

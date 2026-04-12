@@ -13,6 +13,7 @@ import (
 
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 	"github.com/heinrichb/steamgifts-bot/internal/config"
+	"github.com/heinrichb/steamgifts-bot/internal/metrics"
 	"github.com/heinrichb/steamgifts-bot/internal/notify"
 	"github.com/heinrichb/steamgifts-bot/internal/scorer"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
@@ -115,6 +116,7 @@ func (r *Runner) recordRun(page sg.AccountState) {
 	r.status.Username = page.Username
 	r.status.Points = page.Points
 	r.mu.Unlock()
+	metrics.Points.WithLabelValues(r.Name).Set(float64(page.Points))
 }
 
 // shouldSyncSteam reports whether the per-account Steam sync interval has
@@ -161,6 +163,7 @@ func (r *Runner) syncSteam(ctx context.Context, xsrf string) error {
 		"msg", res.Msg,
 		"next_in", r.Settings.SteamSyncInterval(),
 	)
+	metrics.SyncSucceeded.WithLabelValues(r.Name).Inc()
 	return nil
 }
 
@@ -168,13 +171,17 @@ func (r *Runner) recordEntry(g sg.Giveaway, ok bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.status.EntriesAttempt++
+	metrics.EntriesAttempted.WithLabelValues(r.Name).Inc()
 	if ok {
 		r.status.EntriesOK++
+		metrics.EntriesSucceeded.WithLabelValues(r.Name).Inc()
 		entry := EnteredGiveaway{When: time.Now(), Name: g.Name, Code: g.Code, Cost: g.Cost}
 		r.status.RecentEntries = append(r.status.RecentEntries, entry)
 		if len(r.status.RecentEntries) > recentEntriesCap {
 			r.status.RecentEntries = r.status.RecentEntries[len(r.status.RecentEntries)-recentEntriesCap:]
 		}
+	} else {
+		metrics.EntriesFailed.WithLabelValues(r.Name).Inc()
 	}
 }
 
@@ -325,6 +332,8 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		}
 	}
 	r.Logger.Info("cycle complete", "entered", entered, "points_left", points)
+	metrics.CyclesCompleted.WithLabelValues(r.Name).Inc()
+	metrics.CandidatesScanned.WithLabelValues(r.Name).Set(float64(len(candidates)))
 
 	// Check for new wins and send notifications.
 	if r.Notifier != nil && r.Notifier.Enabled() && !r.DryRun {
@@ -359,6 +368,7 @@ func (r *Runner) checkWins(ctx context.Context) {
 			continue
 		}
 		r.seenWins[w.Code] = true
+		metrics.WinsDetected.WithLabelValues(r.Name).Inc()
 		r.Logger.Info("🎉 won a giveaway!", "game", w.Name, "url", w.URL)
 		if err := r.Notifier.SendWin(ctx, notify.Win{
 			GameName:    w.Name,

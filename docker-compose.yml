@@ -32,7 +32,10 @@ services:
       - ./config.yml:/config/config.yml:ro
       - ./state:/state
     command: ["run", "--config", "/config/config.yml", "--state-file", "/state/state.json"]
-    # No ports — the bot only makes outbound HTTPS requests.
+    # Uncomment to enable Prometheus metrics scraping:
+    # command: ["run", "--config", "/config/config.yml", "--state-file", "/state/state.json", "--metrics-addr", ":9090"]
+    # ports:
+    #   - "9090:9090"
     environment:
       - TZ=UTC
     user: "${UID:-1000}:${GID:-1000}"

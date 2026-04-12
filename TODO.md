@@ -40,7 +40,7 @@ A living list of things that would make the bot better. Not promises — just th
 
 - [ ] **Parameterized filters** — `copy_min: 5`, `type: any`, etc.
 - [ ] **Combined filters** — single request with multiple constraints
-- [ ] **Raw URL escape hatch** — `raw: "/giveaways/search?type=group&copy_min=3"`
+- [x] **Raw URL escape hatch** — filters starting with `/` are passed through as-is
 
 ## Reliability
 
@@ -55,7 +55,7 @@ A living list of things that would make the bot better. Not promises — just th
 
 ## Observability
 
-- [ ] **Prometheus `/metrics` endpoint** — entries attempted, points, request latency, errors
+- [x] **Prometheus `/metrics` endpoint** — `--metrics-addr :9090` exposes entries, points, cycles, sync, wins per account
 
 ## Operations
 
