@@ -1,4 +1,4 @@
-.PHONY: build test lint fmt fmt-check vet tidy run check clean docker
+.PHONY: build test lint fmt fmt-check vet tidy run check clean docker refresh-fixtures
 
 BINARY := steamgifts-bot
 PKG    := ./...
@@ -41,3 +41,6 @@ clean:
 
 docker:
 	docker build -t $(BINARY):dev .
+
+refresh-fixtures:
+	go run ./cmd/refresh-fixtures
