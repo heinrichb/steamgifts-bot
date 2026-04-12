@@ -20,7 +20,7 @@ A living list of things that would make the bot better. Not promises — just th
 
 ## UX
 
-- [ ] **Browser-helper cookie capture** — tiny `localhost:PORT` page that replaces the DevTools step
+- [ ] **Auto cookie capture via local proxy** — a simple paste form is no better than the terminal; this needs to proxy the steamgifts login flow and intercept the Set-Cookie header automatically. Significantly more complex (HTTPS, redirect chain, Steam OpenID) but would be the real UX breakthrough.
 - [ ] **GUI subsystem Windows build** — eliminate the .bat launcher by building with `-H windowsgui`
 - [ ] **Code-signed Windows builds** (Authenticode) so SmartScreen stops warning
 - [ ] **Auto-update check** on startup with opt-in download

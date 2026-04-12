@@ -28,13 +28,9 @@ type AccountInput struct {
 //   - prompts for the cookie
 //   - validates it live by signing in and reading the username + points
 //   - prompts for an optional friendly account name
-//
-// It returns a fully-populated config.Account ready to append to the config.
 func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error) {
 	const loginURL = "https://www.steamgifts.com/?login"
 
-	// Step 1: kick the browser open and explain what to do. We don't fail
-	// if browser.OpenURL errors — the user can paste the URL by hand.
 	openErr := browser.OpenURL(loginURL)
 	intro := strings.Join([]string{
 		"Sign in to steamgifts.com in the browser window that just opened, then come back here.",
@@ -59,7 +55,6 @@ func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error
 		return config.Account{}, err
 	}
 
-	// Step 2: paste + validate. Loop until the cookie passes or the user quits.
 	var cookie string
 	var validated *sg.AccountState
 	for {
@@ -102,7 +97,6 @@ func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error
 		}
 	}
 
-	// Step 3: pick a friendly name (default to the detected steamgifts username).
 	name := validated.Username
 	if name == "" {
 		name = in.DefaultName
