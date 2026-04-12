@@ -40,8 +40,8 @@ func ValidFilterNames() []string {
 	}
 }
 
-// IsValidFilter reports whether name is a recognised filter identifier.
-// Thin wrapper over FilterURL so there's one source of truth.
+// IsValidFilter reports whether name is a recognised filter identifier
+// or a raw URL path (starting with /).
 func IsValidFilter(name string) bool {
 	_, err := FilterURL(name)
 	return err == nil
@@ -54,6 +54,10 @@ func IsValidFilter(name string) bool {
 // Future work (see TODO.md): support parameterized filters (e.g. copy_min=N
 // for arbitrary N) and combined filters via a structured config schema.
 func FilterURL(name string) (string, error) {
+	// Raw URL escape hatch: /giveaways/search?type=group&copy_min=3
+	if strings.HasPrefix(name, "/") {
+		return name, nil
+	}
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case FilterWishlist:
 		return searchBase + "?type=wishlist", nil
@@ -70,6 +74,6 @@ func FilterURL(name string) (string, error) {
 	case FilterAll, "":
 		return searchBase, nil
 	default:
-		return "", fmt.Errorf("unknown filter %q", name)
+		return "", fmt.Errorf("unknown filter %q (use a named filter or a raw path starting with /)", name)
 	}
 }

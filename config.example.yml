@@ -54,6 +54,8 @@ defaults:
 #   dlc          — DLC-only
 #   multicopy    — multi-copy giveaways (>= 2 copies — better odds)
 #   all          — everything
+# You can also use raw URLs for advanced filtering:
+#   /giveaways/search?type=group&copy_min=3  — group giveaways with 3+ copies
 filters:
   - wishlist
   - group
