@@ -38,8 +38,7 @@ A living list of things that would make the bot better. Not promises — just th
 
 ## Filter system v2
 
-- [ ] **Parameterized filters** — `copy_min: 5`, `type: any`, etc.
-- [ ] **Combined filters** — single request with multiple constraints
+- [x] **Parameterized + combined filters** — covered by raw URL escape hatch
 - [x] **Raw URL escape hatch** — filters starting with `/` are passed through as-is
 
 ## Reliability
@@ -51,7 +50,7 @@ A living list of things that would make the bot better. Not promises — just th
 
 - [ ] **SQLite state persistence** — entry history, dedupe across restarts, won-game tracking
 - [ ] **Wishlist sync from Steam profile URL** — auto-update which games to prioritize
-- [ ] **Backup / restore** of state directory
+- [x] **Backup / restore** — `steamgifts-bot backup create/restore` zips config+state+logs
 
 ## Observability
 
@@ -60,7 +59,7 @@ A living list of things that would make the bot better. Not promises — just th
 ## Operations
 
 - [ ] **Helm chart** for k8s users
-- [ ] **Web UI dashboard** — status, points, recent entries, manual trigger
+- [x] **Web UI dashboard** — `--dashboard-addr :8080` with auto-refresh status page
 
 ## Internals
 
