@@ -65,12 +65,14 @@ type Config struct {
 // Pointer-typed fields signal "not set" so per-account overrides can
 // distinguish "use default" from "explicitly zero".
 type AccountSettings struct {
-	MinPoints        *int     `yaml:"min_points,omitempty"          mapstructure:"min_points"`
-	PauseMinutes     *int     `yaml:"pause_minutes,omitempty"       mapstructure:"pause_minutes"`
-	EnterPinned      *bool    `yaml:"enter_pinned,omitempty"        mapstructure:"enter_pinned"`
-	MaxEntriesPerRun *int     `yaml:"max_entries_per_run,omitempty" mapstructure:"max_entries_per_run"`
-	UserAgent        string   `yaml:"user_agent,omitempty"          mapstructure:"user_agent"`
-	Filters          []string `yaml:"filters,omitempty"             mapstructure:"filters"`
+	MinPoints              *int     `yaml:"min_points,omitempty"                mapstructure:"min_points"`
+	PauseMinutes           *int     `yaml:"pause_minutes,omitempty"             mapstructure:"pause_minutes"`
+	EnterPinned            *bool    `yaml:"enter_pinned,omitempty"              mapstructure:"enter_pinned"`
+	MaxEntriesPerRun       *int     `yaml:"max_entries_per_run,omitempty"       mapstructure:"max_entries_per_run"`
+	UserAgent              string   `yaml:"user_agent,omitempty"                mapstructure:"user_agent"`
+	Filters                []string `yaml:"filters,omitempty"                   mapstructure:"filters"`
+	SteamSyncEnabled       *bool    `yaml:"steam_sync_enabled,omitempty"        mapstructure:"steam_sync_enabled"`
+	SteamSyncIntervalHours *int     `yaml:"steam_sync_interval_hours,omitempty" mapstructure:"steam_sync_interval_hours"`
 }
 
 // Account is a single steamgifts.com identity the bot will operate on.
@@ -87,13 +89,17 @@ func Defaults() Config {
 	pause := 15
 	pinned := false
 	maxEntries := 25
+	syncEnabled := true
+	syncInterval := 24
 	return Config{
 		Defaults: AccountSettings{
-			MinPoints:        &minPoints,
-			PauseMinutes:     &pause,
-			EnterPinned:      &pinned,
-			MaxEntriesPerRun: &maxEntries,
-			UserAgent:        DefaultUserAgent,
+			MinPoints:              &minPoints,
+			PauseMinutes:           &pause,
+			EnterPinned:            &pinned,
+			MaxEntriesPerRun:       &maxEntries,
+			UserAgent:              DefaultUserAgent,
+			SteamSyncEnabled:       &syncEnabled,
+			SteamSyncIntervalHours: &syncInterval,
 		},
 		Filters: []string{
 			FilterWishlist, FilterGroup, FilterRecommended, FilterNew, FilterAll,
@@ -130,7 +136,26 @@ func (c *Config) Resolved(idx int) AccountSettings {
 	} else if len(out.Filters) == 0 {
 		out.Filters = c.Filters
 	}
+	if a.SteamSyncEnabled != nil {
+		out.SteamSyncEnabled = a.SteamSyncEnabled
+	}
+	if a.SteamSyncIntervalHours != nil {
+		out.SteamSyncIntervalHours = a.SteamSyncIntervalHours
+	}
 	return out
+}
+
+// SteamSyncEnabledValue returns whether automatic Steam sync is enabled.
+func (s AccountSettings) SteamSyncEnabledValue() bool {
+	return s.SteamSyncEnabled != nil && *s.SteamSyncEnabled
+}
+
+// SteamSyncInterval returns the minimum gap between Steam sync attempts.
+func (s AccountSettings) SteamSyncInterval() time.Duration {
+	if s.SteamSyncIntervalHours == nil {
+		return 24 * time.Hour
+	}
+	return time.Duration(*s.SteamSyncIntervalHours) * time.Hour
 }
 
 // PauseDuration returns the resolved pause as a time.Duration.
@@ -193,6 +218,9 @@ func (c *Config) Validate() error {
 		}
 		if max := resolved.MaxEntriesValue(); max < 0 {
 			return fmt.Errorf("accounts[%d] (%s): max_entries_per_run must be >= 0", i, name)
+		}
+		if h := resolved.SteamSyncIntervalHours; h != nil && *h < 1 {
+			return fmt.Errorf("accounts[%d] (%s): steam_sync_interval_hours must be >= 1 to avoid hammering the site", i, name)
 		}
 		for _, f := range resolved.Filters {
 			if !isValidFilter(f) {
