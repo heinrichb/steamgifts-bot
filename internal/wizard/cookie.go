@@ -89,7 +89,7 @@ func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error
 		}
 
 		fmt.Printf("✗ cookie didn't work: %s\n", err)
-		var retry bool
+		retry := true
 		_ = huh.NewConfirm().
 			Title("Try again?").
 			Affirmative("Try a different cookie").
