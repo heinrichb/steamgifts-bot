@@ -10,6 +10,7 @@ import (
 	"github.com/heinrichb/steamgifts-bot/internal/config"
 	logpkg "github.com/heinrichb/steamgifts-bot/internal/log"
 	"github.com/heinrichb/steamgifts-bot/internal/notify"
+	"github.com/heinrichb/steamgifts-bot/internal/scorer"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
 )
 
@@ -38,16 +39,37 @@ func Build(cfg *config.Config, logger *slog.Logger, store *state.Store, notif *n
 			return nil, fmt.Errorf("account %q: %w", acct.Name, err)
 		}
 		orch.Runners = append(orch.Runners, &Runner{
-			Name:     acct.Name,
-			Settings: settings,
-			Client:   c,
-			Logger:   log,
-			State:    store,
-			Notifier: notif,
-			DryRun:   dryRun,
+			Name:          acct.Name,
+			Settings:      settings,
+			ScorerWeights: scorerWeightsFromConfig(cfg.Scorer),
+			Client:        c,
+			Logger:        log,
+			State:         store,
+			Notifier:      notif,
+			DryRun:        dryRun,
 		})
 	}
 	return orch, nil
+}
+
+func scorerWeightsFromConfig(sw config.ScorerWeights) scorer.Weights {
+	var w scorer.Weights
+	if sw.Wishlist != nil {
+		w.Wishlist = *sw.Wishlist
+	}
+	if sw.Sniper != nil {
+		w.Sniper = *sw.Sniper
+	}
+	if sw.SniperHours != nil {
+		w.SniperHours = *sw.SniperHours
+	}
+	if sw.Level != nil {
+		w.Level = *sw.Level
+	}
+	if sw.CostEfficiency != nil {
+		w.Cost = *sw.CostEfficiency
+	}
+	return w
 }
 
 // Run starts each runner in its own goroutine. Returns when ctx is cancelled

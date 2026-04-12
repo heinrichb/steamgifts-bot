@@ -1,18 +1,9 @@
 // Package scorer assigns a priority score to each giveaway candidate so
 // the bot enters the highest-value ones first. Higher score = enter sooner.
 //
-// The score is a weighted sum of independent components:
-//
-//   - Sniper boost: giveaways closing soon with few entries per copy
-//     have the best win probability — score increases as deadline
-//     approaches and entry count stays low.
-//   - Wishlist boost: games from the user's wishlist filter score higher
-//     so the bot enters games you actually want before random titles.
-//   - Cost efficiency: mild preference for cheaper giveaways so the bot
-//     spreads points across more entries rather than blowing them on
-//     one expensive title.
-//
-// Future components (see TODO.md): level-locked boost, popularity/quality.
+// The score is a weighted sum of independent components: sniper boost,
+// wishlist boost, level-locked boost, and cost efficiency. All weights
+// are configurable via config.yml's `scorer:` section.
 package scorer
 
 import (
@@ -23,20 +14,54 @@ import (
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
+// Default weights used when config values are unset.
 const (
-	wishlistWeight       = 5.0
-	sniperWeight         = 10.0
-	sniperThresholdHours = 2.0
-	levelWeight          = 3.0
-	levelMaxBoost        = 10 // level requirement above which the boost is capped
-	costWeight           = 1.0
-	maxCost              = 50.0
+	DefaultWishlistWeight = 5.0
+	DefaultSniperWeight   = 10.0
+	DefaultSniperHours    = 2.0
+	DefaultLevelWeight    = 3.0
+	DefaultCostWeight     = 1.0
 )
+
+const (
+	levelMaxBoost = 10
+	maxCost       = 50.0
+)
+
+// Weights holds the tunable scoring parameters. Zero values use defaults.
+type Weights struct {
+	Wishlist    float64
+	Sniper      float64
+	SniperHours float64
+	Level       float64
+	Cost        float64
+}
+
+// WithDefaults returns a copy with zero values replaced by built-in defaults.
+func (w Weights) WithDefaults() Weights {
+	if w.Wishlist == 0 {
+		w.Wishlist = DefaultWishlistWeight
+	}
+	if w.Sniper == 0 {
+		w.Sniper = DefaultSniperWeight
+	}
+	if w.SniperHours == 0 {
+		w.SniperHours = DefaultSniperHours
+	}
+	if w.Level == 0 {
+		w.Level = DefaultLevelWeight
+	}
+	if w.Cost == 0 {
+		w.Cost = DefaultCostWeight
+	}
+	return w
+}
 
 // Context carries per-cycle data the scorer needs beyond the giveaway itself.
 type Context struct {
 	WishlistCodes map[string]bool
 	AccountLevel  int
+	Weights       Weights
 }
 
 // Candidate wraps a giveaway with its computed score.
@@ -46,9 +71,8 @@ type Candidate struct {
 }
 
 // Rank scores and sorts a slice of giveaways, highest score first.
-// The input slice is not modified; a new sorted slice of Candidates
-// is returned.
 func Rank(giveaways []sg.Giveaway, sctx Context) []Candidate {
+	sctx.Weights = sctx.Weights.WithDefaults()
 	now := time.Now()
 	candidates := make([]Candidate, len(giveaways))
 	for i, g := range giveaways {
@@ -64,61 +88,40 @@ func Rank(giveaways []sg.Giveaway, sctx Context) []Candidate {
 }
 
 func score(g sg.Giveaway, sctx Context, now time.Time) float64 {
-	s := sniperScore(g, now) + costScore(g) + levelScore(g, sctx.AccountLevel)
+	w := sctx.Weights
+	s := sniperScore(g, now, w.Sniper, w.SniperHours) +
+		costScore(g, w.Cost) +
+		levelScore(g, sctx.AccountLevel, w.Level)
 	if sctx.WishlistCodes[g.Code] {
-		s += wishlistWeight
+		s += w.Wishlist
 	}
 	return s
 }
 
-// levelScore boosts giveaways with higher level requirements since fewer
-// users are eligible, improving win odds. Scales linearly up to levelMaxBoost.
-func levelScore(g sg.Giveaway, accountLevel int) float64 {
+func levelScore(g sg.Giveaway, accountLevel int, weight float64) float64 {
 	if g.Level <= 0 || accountLevel <= 0 {
 		return 0
 	}
-	lvl := float64(g.Level)
-	if lvl > float64(levelMaxBoost) {
-		lvl = float64(levelMaxBoost)
-	}
-	return levelWeight * (lvl / float64(levelMaxBoost))
+	lvl := math.Min(float64(g.Level), float64(levelMaxBoost))
+	return weight * (lvl / float64(levelMaxBoost))
 }
 
-// sniperScore boosts giveaways that are closing soon with few entries
-// relative to the number of copies. The closer the deadline and the
-// fewer competitors per copy, the higher the expected value.
-func sniperScore(g sg.Giveaway, now time.Time) float64 {
+func sniperScore(g sg.Giveaway, now time.Time, weight, thresholdHours float64) float64 {
 	if g.EndsAt.IsZero() || g.EndsAt.Before(now) {
 		return 0
 	}
 	hoursLeft := g.EndsAt.Sub(now).Hours()
-	if hoursLeft > sniperThresholdHours {
+	if hoursLeft > thresholdHours {
 		return 0
 	}
-	// urgency: 1.0 at deadline, 0.0 at threshold
-	urgency := 1.0 - (hoursLeft / sniperThresholdHours)
-
-	// winRate: copies / max(entries, 1) — capped at 1.0
-	entries := float64(g.Entries)
-	if entries < 1 {
-		entries = 1
-	}
-	copies := float64(g.Copies)
-	if copies < 1 {
-		copies = 1
-	}
+	urgency := 1.0 - (hoursLeft / thresholdHours)
+	entries := math.Max(float64(g.Entries), 1)
+	copies := math.Max(float64(g.Copies), 1)
 	winRate := math.Min(copies/entries, 1.0)
-
-	return sniperWeight * urgency * winRate
+	return weight * urgency * winRate
 }
 
-// costScore gives a mild preference to cheaper giveaways so the bot
-// enters more titles per point budget rather than blowing everything
-// on one expensive entry.
-func costScore(g sg.Giveaway) float64 {
-	cost := float64(g.Cost)
-	if cost < 1 {
-		cost = 1
-	}
-	return costWeight * (1.0 - math.Min(cost/maxCost, 1.0))
+func costScore(g sg.Giveaway, weight float64) float64 {
+	cost := math.Max(float64(g.Cost), 1)
+	return weight * (1.0 - math.Min(cost/maxCost, 1.0))
 }

@@ -60,6 +60,16 @@ filters:
   - new
   - all
 
+# Scorer weights control how the bot prioritizes giveaways.
+# Higher weight = stronger influence. Set to 0 to disable a component.
+# Defaults shown — omit any key to use the built-in value.
+# scorer:
+#   wishlist: 5.0         # boost for games on your Steam wishlist
+#   sniper: 10.0          # boost for giveaways closing soon with few entries
+#   sniper_hours: 2.0     # window (hours) within which the sniper boost activates
+#   level: 3.0            # boost for level-locked giveaways (fewer eligible users)
+#   cost_efficiency: 1.0  # mild preference for cheaper entries to spread points
+
 # Discord webhook URL for win notifications. Leave empty to disable.
 # Create one at: Discord Server Settings → Integrations → Webhooks → New
 # discord_webhook_url: "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
