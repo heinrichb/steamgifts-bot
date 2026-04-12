@@ -57,13 +57,31 @@ const testPage = `<!doctype html>
 </div></div>
 </body></html>`
 
+// emptyPage is returned for page 2+ so the scanner stops after one page.
+const emptyPage = `<!doctype html>
+<html><body>
+<a class="nav__avatar-outer-wrap" href="/user/testuser"></a>
+<a class="nav__button-container">
+  <span class="nav__points">200</span>P / <span title="5.00">Level 5</span>
+</a>
+<input type="hidden" name="xsrf_token" value="tok123" />
+</body></html>`
+
+// servePages returns testPage for page 1 and emptyPage for subsequent pages.
+func servePages(w http.ResponseWriter, r *http.Request) {
+	if strings.Contains(r.URL.RawQuery, "page=") {
+		io.WriteString(w, emptyPage)
+		return
+	}
+	io.WriteString(w, testPage)
+}
+
 func newTestRunner(t *testing.T, srv *httptest.Server, opts func(*Runner)) *Runner {
 	t.Helper()
 	minPts := 0
 	pause := 1
 	pinned := false
 	maxEntries := 25
-	maxPages := 1
 	syncEnabled := false
 	c, err := client.New("test-cookie", "test-ua",
 		client.WithBaseURL(srv.URL),
@@ -80,7 +98,6 @@ func newTestRunner(t *testing.T, srv *httptest.Server, opts func(*Runner)) *Runn
 			PauseMinutes:     &pause,
 			EnterPinned:      &pinned,
 			MaxEntriesPerRun: &maxEntries,
-			MaxPages:         &maxPages,
 			SteamSyncEnabled: &syncEnabled,
 			Filters:          []string{sg.FilterAll},
 		},
@@ -95,9 +112,7 @@ func newTestRunner(t *testing.T, srv *httptest.Server, opts func(*Runner)) *Runn
 }
 
 func TestRunOnceDryRunEntersGiveaways(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, testPage)
-	}))
+	srv := httptest.NewServer(http.HandlerFunc(servePages))
 	defer srv.Close()
 
 	r := newTestRunner(t, srv, nil)
@@ -112,9 +127,7 @@ func TestRunOnceDryRunEntersGiveaways(t *testing.T) {
 }
 
 func TestRunOnceRespectsMaxEntries(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		io.WriteString(w, testPage)
-	}))
+	srv := httptest.NewServer(http.HandlerFunc(servePages))
 	defer srv.Close()
 
 	maxEntries := 1
@@ -130,9 +143,7 @@ func TestRunOnceRespectsMaxEntries(t *testing.T) {
 }
 
 func TestRunOnceSkipsLevelLocked(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		io.WriteString(w, testPage)
-	}))
+	srv := httptest.NewServer(http.HandlerFunc(servePages))
 	defer srv.Close()
 
 	r := newTestRunner(t, srv, nil)
@@ -146,16 +157,19 @@ func TestRunOnceSkipsLevelLocked(t *testing.T) {
 }
 
 func TestRunOnceDeduplicatesAcrossPages(t *testing.T) {
-	// Serve the same page for both page=1 and page=2
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		io.WriteString(w, testPage)
+	// Serve the same giveaways on every page (2 pages, then empty).
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		if callCount <= 2 {
+			io.WriteString(w, testPage)
+			return
+		}
+		io.WriteString(w, emptyPage)
 	}))
 	defer srv.Close()
 
-	maxPages := 2
-	r := newTestRunner(t, srv, func(r *Runner) {
-		r.Settings.MaxPages = &maxPages
-	})
+	r := newTestRunner(t, srv, nil)
 	_ = r.runOnce(context.Background())
 	snap := r.Snapshot()
 	// Same giveaways on both pages — should still only enter each once
@@ -173,7 +187,7 @@ func TestRunOnceRealEntryPostsCorrectly(t *testing.T) {
 			io.WriteString(w, `{"type":"success","entry_count":"1","points":190}`)
 			return
 		}
-		io.WriteString(w, testPage)
+		servePages(w, r)
 	}))
 	defer srv.Close()
 
@@ -198,7 +212,7 @@ func TestRunOnceHandlesEntryErrors(t *testing.T) {
 			io.WriteString(w, `{"type":"error","msg":"Level 2 Required","points":"200"}`)
 			return
 		}
-		io.WriteString(w, testPage)
+		servePages(w, r)
 	}))
 	defer srv.Close()
 
@@ -217,9 +231,7 @@ func TestRunOnceHandlesEntryErrors(t *testing.T) {
 }
 
 func TestRunOnceContextCancellation(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		io.WriteString(w, testPage)
-	}))
+	srv := httptest.NewServer(http.HandlerFunc(servePages))
 	defer srv.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
