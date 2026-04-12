@@ -1,0 +1,7 @@
+dist/
+vendor/
+*.go
+go.sum
+testdata/
+CHANGELOG.md
+deploy/helm/*/templates/

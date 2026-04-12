@@ -1,0 +1,48 @@
+# steamgifts-bot — Docker Compose deployment
+#
+# Quick start:
+#   1. cp config.example.yml config.yml
+#   2. Edit config.yml and paste your PHPSESSID cookie
+#      (run `docker compose run --rm bot setup` for the interactive wizard)
+#   3. docker compose up -d
+#
+# Logs: docker compose logs -f bot
+
+services:
+  bot:
+    image: ghcr.io/heinrichb/steamgifts-bot:latest
+    # To build from source instead:
+    # build:
+    #   context: .
+    container_name: steamgifts-bot
+    restart: unless-stopped
+    # config.yml is bind-mounted read-only; the bot's persistent state
+    # (last sync times, future entry history) lives in ./state/ on the
+    # host so it survives container restarts and doesn't burn the daily
+    # Steam-sync cooldown.
+    #
+    # First-time setup:
+    #   mkdir -p state
+    #   docker compose up -d
+    #
+    # The container runs as the host user (UID/GID env vars below) so
+    # the bind-mounted ./state directory has the right ownership without
+    # any chown gymnastics. Override UID/GID in a .env file if needed.
+    volumes:
+      - ./config.yml:/config/config.yml:ro
+      - ./state:/state
+    command: ["run", "--config", "/config/config.yml", "--state-file", "/state/state.json"]
+    # Uncomment to enable Prometheus metrics and/or web dashboard:
+    # command: ["run", "--config", "/config/config.yml", "--state-file", "/state/state.json", "--metrics-addr", ":9090", "--dashboard-addr", ":8080"]
+    # ports:
+    #   - "9090:9090"  # Prometheus /metrics
+    #   - "8080:8080"  # Web dashboard
+    environment:
+      - TZ=UTC
+    user: "${UID:-1000}:${GID:-1000}"
+    # Read-only root FS for defense in depth (state/ is the only writable mount).
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true

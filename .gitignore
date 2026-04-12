@@ -1,0 +1,40 @@
+# Binaries
+/steamgifts-bot
+/steamgifts-bot.exe
+/dist/
+/bin/
+
+# Local user config (must never be committed — contains session cookies)
+config.yml
+config.local.*
+*.local.yml
+
+# Persistent runtime state — last sync times, future entry history, etc.
+state.json
+.state-*.json
+
+# Log file (auto-generated next to config.yml)
+steamgifts-bot.log
+
+# Test / coverage artifacts
+*.test
+*.out
+coverage.*
+profile.*
+
+# Editor / OS
+.vscode/
+.idea/
+.codex
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# GoReleaser
+.goreleaser-tmp/
+
+# Dependencies vendored locally (we use modules)
+/vendor/
+go.work
+go.work.sum

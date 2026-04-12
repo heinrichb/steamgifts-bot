@@ -1,0 +1,111 @@
+# steamgifts-bot — example configuration
+#
+# Copy this file to `config.yml` (or pass --config <path>) and edit.
+# Every value here can also be set via an environment variable:
+#   STEAMGIFTS_<UPPER_SNAKE_KEY>  e.g. STEAMGIFTS_DEFAULTS_MIN_POINTS=100
+# Precedence: env var > config file > built-in default.
+#
+# SECURITY: this file contains your steamgifts.com PHPSESSID cookie, which
+# is equivalent to your password. Keep it private. Do not commit it.
+
+defaults:
+  # Don't enter giveaways if doing so would drop your account below this
+  # point threshold. Steamgifts caps at 400 and points regenerate over time.
+  min_points: 50
+
+  # How long to wait between scan cycles for each account.
+  pause_minutes: 15
+
+  # Include pinned / featured giveaways at the top of each list.
+  enter_pinned: false
+
+  # Hard cap on entries per scan cycle (safety net).
+  max_entries_per_run: 25
+
+  # Max entries per game across different giveaway listings.
+  # 0 = unlimited (default). Entering all listings of the same game is
+  # economically optimal (steamgifts refunds on win), but some users
+  # prefer to spread points across more distinct titles.
+  # max_entries_per_app: 0
+
+  # Sent as the User-Agent header. The default mimics a current desktop
+  # Chrome on Windows so the bot doesn't announce itself to steamgifts.
+  # Override here if you want to match your own browser exactly — the
+  # closer this matches the browser you use to log in, the less suspicious
+  # the traffic looks. You can copy yours from any site's network tab.
+  # user_agent: "Mozilla/5.0 ..."
+
+  # Automatically trigger steamgifts' "Sync Account" once per interval.
+  # Refunds points for games you've acquired since the last sync and
+  # filters owned games out of future listings — pure win, no downside.
+  # The site enforces its own ~24h cooldown; this is a safety floor.
+  steam_sync_enabled: true
+  steam_sync_interval_hours: 24
+
+# Filters control which listing pages the bot scans for candidates.
+# Order doesn't matter for priority — the scorer ranks all candidates
+# after scanning and enters the highest-value ones first.
+# More filters = wider candidate pool = better scoring decisions.
+#
+# Available filters (each maps to a /giveaways/search URL):
+#   wishlist     — games on your Steam wishlist (get a scorer boost)
+#   group        — group-only giveaways (often less competition)
+#   recommended  — Steamgifts recommendations
+#   new          — newest giveaways
+#   dlc          — DLC-only
+#   multicopy    — multi-copy giveaways (>= 2 copies — better odds)
+#   all          — everything
+# You can also use raw URLs for advanced filtering:
+#   /giveaways/search?type=group&copy_min=3  — group giveaways with 3+ copies
+filters:
+  - wishlist
+  - group
+  - multicopy
+  - recommended
+  - new
+  - all
+
+# Scorer weights control how the bot prioritizes giveaways.
+# Higher weight = stronger influence. Set to 0 to disable a component.
+# Defaults shown — omit any key to use the built-in value.
+# scorer:
+#   wishlist: 5.0         # boost for games on your Steam wishlist
+#   sniper: 10.0          # boost for giveaways closing soon with few entries
+#   sniper_hours: 2.0     # window (hours) within which the sniper boost activates
+#   level: 3.0            # boost for level-locked giveaways (fewer eligible users)
+#   cost_efficiency: 1.0  # mild preference for cheaper entries to spread points
+
+# --- Observability (optional) ---
+# Prometheus metrics endpoint. Pass --metrics-addr :9090 (or any port)
+# to expose /metrics for scraping by Prometheus/Grafana.
+# In Docker, also add the port mapping in docker-compose.yml.
+
+# --- Notifications (optional) ---
+# Discord webhook URL for win notifications.
+# Create one at: Discord Server Settings → Integrations → Webhooks → New
+# discord_webhook_url: "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+
+# Telegram bot notifications. Get a token from @BotFather, then send
+# a message to your bot and find your chat_id via the getUpdates API.
+# telegram_bot_token: "123456:ABC-DEF..."
+# telegram_chat_id: "987654321"
+
+# One or more accounts. Each account runs independently in its own scheduler.
+accounts:
+  - name: primary
+    # Get this from your browser's DevTools: Application/Storage tab →
+    # Cookies → https://www.steamgifts.com → PHPSESSID → Value.
+    # The first-run wizard (`steamgifts-bot setup`) walks you through it.
+    cookie: "REPLACE_WITH_YOUR_PHPSESSID"
+
+    # Per-account overrides (optional). Anything omitted falls back to defaults.
+    # min_points: 100
+    # filters: [wishlist, group]
+    # proxy_url: "socks5://127.0.0.1:1080"  # per-account HTTP or SOCKS5 proxy
+    # scorer:                               # per-account scorer weight overrides
+    #   wishlist: 0                          # e.g. disable wishlist boost for this account
+    #   sniper: 20                           # e.g. aggressive sniping on an alt
+
+  # Add more accounts by uncommenting:
+  # - name: alt
+  #   cookie: "OTHER_PHPSESSID"
