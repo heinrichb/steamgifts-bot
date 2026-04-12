@@ -41,7 +41,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=%s run
+ExecStart="%s" run
 Restart=on-failure
 RestartSec=30
 Environment=NO_COLOR=1

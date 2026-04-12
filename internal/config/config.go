@@ -143,6 +143,9 @@ func (c *Config) Resolved(idx int) AccountSettings {
 	if a.SteamSyncIntervalHours != nil {
 		out.SteamSyncIntervalHours = a.SteamSyncIntervalHours
 	}
+	if a.Scorer != nil {
+		out.Scorer = a.Scorer
+	}
 	return out
 }
 
