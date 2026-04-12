@@ -341,10 +341,8 @@ func (r *Runner) checkWins(ctx context.Context) {
 		return
 	}
 	if r.seenWins == nil {
-		// First cycle: seed with current wins so we don't spam old ones.
-		// Seed with current wins so we don't spam old ones. Wins that
-		// occurred during bot downtime will be silently absorbed here
-		// and not notified — acceptable tradeoff for in-memory tracking.
+		// Seed with current wins so we don't spam old ones. Wins during
+		// bot downtime are silently absorbed — acceptable for in-memory tracking.
 		r.seenWins = make(map[string]bool, len(wins))
 		for _, w := range wins {
 			r.seenWins[w.Code] = true
@@ -360,7 +358,7 @@ func (r *Runner) checkWins(ctx context.Context) {
 		r.Logger.Info("🎉 won a giveaway!", "game", w.Name, "url", w.URL)
 		if err := r.Notifier.SendWin(ctx, notify.Win{
 			GameName:    w.Name,
-			GiveawayURL: "https://www.steamgifts.com" + w.URL,
+			GiveawayURL: r.Client.BaseURL() + w.URL,
 			AccountName: r.Name,
 		}); err != nil {
 			r.Logger.Warn("failed to send win notification", "err", err)
