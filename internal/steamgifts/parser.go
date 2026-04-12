@@ -54,7 +54,14 @@ func parseAccountState(doc *goquery.Document) (AccountState, error) {
 		return true
 	})
 	if st.XSRFToken == "" {
-		return st, errors.New("parse: xsrf token missing — cookie likely invalid or expired")
+		// Distinguish between "not logged in" and "page is broken".
+		if doc.Find(`a[href*="?login"]`).Length() > 0 ||
+			doc.Find(`.nav__button--login`).Length() > 0 {
+			return st, errors.New(
+				"parse: not signed in — your PHPSESSID cookie has expired. " +
+					"Run `steamgifts-bot setup` or paste a fresh cookie into config.yml")
+		}
+		return st, errors.New("parse: xsrf token missing — cookie may be invalid or the page structure changed")
 	}
 
 	// Username is in the nav avatar's data-tooltip / link href.
