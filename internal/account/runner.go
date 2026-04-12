@@ -13,6 +13,7 @@ import (
 
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 	"github.com/heinrichb/steamgifts-bot/internal/config"
+	"github.com/heinrichb/steamgifts-bot/internal/state"
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
@@ -22,14 +23,14 @@ type Runner struct {
 	Settings config.AccountSettings
 	Client   *client.Client
 	Logger   *slog.Logger
+	State    *state.Store // persistent per-account state (last sync time, etc.)
 
 	// DryRun, when true, parses giveaways and logs candidates but never
 	// submits an entry. The wizard, `check`, and `--dry-run` all use this.
 	DryRun bool
 
-	mu       sync.RWMutex
-	status   Status
-	lastSync time.Time // last successful Steam sync attempt
+	mu     sync.RWMutex
+	status Status
 }
 
 // Status is a snapshot of what an account's runner is doing right now.
@@ -119,18 +120,44 @@ func (r *Runner) recordRun(state sg.AccountState) {
 }
 
 // shouldSyncSteam reports whether the per-account Steam sync interval has
-// elapsed since the last successful sync (or never synced).
+// elapsed since the last successful sync. The last-sync timestamp is read
+// from the persistent state store (if attached) so restarts of the bot
+// don't burn through the daily cooldown — critical when iterating during
+// development or when a Docker container restarts.
 func (r *Runner) shouldSyncSteam() bool {
 	if !r.Settings.SteamSyncEnabledValue() {
 		return false
 	}
-	r.mu.RLock()
-	last := r.lastSync
-	r.mu.RUnlock()
+	last := r.lastSyncTime()
+	interval := r.Settings.SteamSyncInterval()
 	if last.IsZero() {
+		r.Logger.Debug("steam sync: no prior sync recorded, will sync this cycle")
 		return true
 	}
-	return time.Since(last) >= r.Settings.SteamSyncInterval()
+	elapsed := time.Since(last)
+	if elapsed < interval {
+		r.Logger.Debug("steam sync: skipping (cooldown)",
+			"last_sync", last.Format(time.RFC3339),
+			"elapsed", elapsed.Round(time.Second),
+			"interval", interval,
+			"next_in", (interval - elapsed).Round(time.Second),
+		)
+		return false
+	}
+	r.Logger.Debug("steam sync: due",
+		"last_sync", last.Format(time.RFC3339),
+		"elapsed", elapsed.Round(time.Second),
+	)
+	return true
+}
+
+// lastSyncTime reads the last successful sync time from the state store,
+// or returns the zero time if no store is attached.
+func (r *Runner) lastSyncTime() time.Time {
+	if r.State == nil {
+		return time.Time{}
+	}
+	return r.State.LastSync(r.Name)
 }
 
 // syncSteam triggers a Steamgifts→Steam sync. Refunds points for newly-
@@ -141,10 +168,16 @@ func (r *Runner) syncSteam(ctx context.Context, xsrf string) error {
 	if err != nil {
 		return err
 	}
-	r.mu.Lock()
-	r.lastSync = time.Now()
-	r.mu.Unlock()
-	r.Logger.Info("synced account with steam", "msg", res.Msg)
+	now := time.Now()
+	if r.State != nil {
+		if perr := r.State.SetLastSync(r.Name, now); perr != nil {
+			r.Logger.Warn("failed to persist last_sync", "err", perr)
+		}
+	}
+	r.Logger.Info("synced account with steam",
+		"msg", res.Msg,
+		"next_in", r.Settings.SteamSyncInterval(),
+	)
 	return nil
 }
 

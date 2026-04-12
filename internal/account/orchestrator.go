@@ -9,6 +9,7 @@ import (
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 	"github.com/heinrichb/steamgifts-bot/internal/config"
 	logpkg "github.com/heinrichb/steamgifts-bot/internal/log"
+	"github.com/heinrichb/steamgifts-bot/internal/state"
 )
 
 // Orchestrator owns one Runner per configured account and starts/stops them
@@ -18,8 +19,9 @@ type Orchestrator struct {
 }
 
 // Build constructs an Orchestrator from a Config. Each account gets its own
-// HTTP client, cookie jar, and rate limiter.
-func Build(cfg *config.Config, logger *slog.Logger, dryRun bool) (*Orchestrator, error) {
+// HTTP client, cookie jar, and rate limiter. The state store, when non-nil,
+// is shared across runners and provides persistence for last-sync timestamps.
+func Build(cfg *config.Config, logger *slog.Logger, store *state.Store, dryRun bool) (*Orchestrator, error) {
 	orch := &Orchestrator{}
 	for i := range cfg.Accounts {
 		acct := cfg.Accounts[i]
@@ -36,6 +38,7 @@ func Build(cfg *config.Config, logger *slog.Logger, dryRun bool) (*Orchestrator,
 			Settings: settings,
 			Client:   c,
 			Logger:   log,
+			State:    store,
 			DryRun:   dryRun,
 		})
 	}
