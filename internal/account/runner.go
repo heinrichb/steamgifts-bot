@@ -189,7 +189,8 @@ func (r *Runner) runOnce(ctx context.Context) error {
 
 	// --- Phase 1: scan all filter pages and collect joinable candidates ---
 	syncedThisCycle := false
-	seen := make(map[string]bool) // dedupe by giveaway code
+	seen := make(map[string]bool)
+	wishlistCodes := make(map[string]bool)
 	var candidates []sg.Giveaway
 	var xsrf string
 	var accountLevel int
@@ -250,6 +251,9 @@ func (r *Runner) runOnce(ctx context.Context) error {
 					continue
 				}
 				seen[g.Code] = true
+				if filter == sg.FilterWishlist {
+					wishlistCodes[g.Code] = true
+				}
 				candidates = append(candidates, g)
 			}
 
@@ -265,7 +269,9 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	}
 
 	// --- Phase 2: score and sort candidates by priority ---
-	ranked := scorer.Rank(candidates)
+	ranked := scorer.Rank(candidates, scorer.Context{
+		WishlistCodes: wishlistCodes,
+	})
 	r.Logger.Info("ranked candidates",
 		"total", len(ranked),
 		"top", ranked[0].Name,

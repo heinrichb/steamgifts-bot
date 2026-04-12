@@ -18,7 +18,7 @@ func TestRankPrefersSnipeable(t *testing.T) {
 			EndsAt: now.Add(48 * time.Hour)},
 	}
 
-	ranked := Rank(giveaways)
+	ranked := Rank(giveaways, Context{})
 	if len(ranked) != 3 {
 		t.Fatalf("expected 3 candidates, got %d", len(ranked))
 	}
@@ -61,14 +61,29 @@ func TestCostScorePrefersChp(t *testing.T) {
 func TestRankStableOnTiedScores(t *testing.T) {
 	g := sg.Giveaway{Code: "A", Cost: 25, Entries: 100, Copies: 1,
 		EndsAt: time.Now().Add(24 * time.Hour)}
-	ranked := Rank([]sg.Giveaway{g, g, g})
+	ranked := Rank([]sg.Giveaway{g, g, g}, Context{})
 	if len(ranked) != 3 {
 		t.Fatalf("expected 3, got %d", len(ranked))
 	}
 }
 
+func TestWishlistBoostOutranksNonWishlist(t *testing.T) {
+	now := time.Now()
+	giveaways := []sg.Giveaway{
+		{Code: "cheap", Name: "Cheap Random", Cost: 1, Entries: 100, Copies: 1,
+			EndsAt: now.Add(24 * time.Hour)},
+		{Code: "wanted", Name: "Wishlist Game", Cost: 30, Entries: 100, Copies: 1,
+			EndsAt: now.Add(24 * time.Hour)},
+	}
+	ctx := Context{WishlistCodes: map[string]bool{"wanted": true}}
+	ranked := Rank(giveaways, ctx)
+	if ranked[0].Code != "wanted" {
+		t.Errorf("wishlist game should rank first, got %q (score %.2f)", ranked[0].Code, ranked[0].Score)
+	}
+}
+
 func TestRankEmptyInput(t *testing.T) {
-	ranked := Rank(nil)
+	ranked := Rank(nil, Context{})
 	if len(ranked) != 0 {
 		t.Errorf("expected empty, got %d", len(ranked))
 	}
