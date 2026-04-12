@@ -5,11 +5,8 @@ FROM golang:1.26-alpine AS build
 WORKDIR /src
 
 # Cache modules across rebuilds.
-# Strip the dev-only coverage-formatter tool and its local replace
-# directive — neither exists in the container and neither is needed
-# to build the binary.
 COPY go.mod go.sum ./
-RUN sed -i '/go_coverage_formatter/d; /^tool /d; /^replace /d' go.mod && \
+RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
 COPY . .
