@@ -95,7 +95,7 @@ func Defaults() Config {
 			SteamSyncIntervalHours: &syncInterval,
 		},
 		Filters: []string{
-			sg.FilterWishlist, sg.FilterGroup, sg.FilterRecommended, sg.FilterNew, sg.FilterAll,
+			sg.FilterWishlist, sg.FilterGroup, sg.FilterMultiCopy, sg.FilterRecommended, sg.FilterNew, sg.FilterAll,
 		},
 		Accounts: nil,
 	}
