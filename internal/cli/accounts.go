@@ -7,9 +7,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-
-	"github.com/heinrichb/steamgifts-bot/internal/config"
-	"github.com/heinrichb/steamgifts-bot/internal/wizard"
 )
 
 func newAccountsCmd() *cobra.Command {
@@ -54,29 +51,7 @@ func newAccountsAddCmd() *cobra.Command {
 		Use:   "add",
 		Short: "Add a new account interactively (launches the cookie wizard)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			configPath, _ := cmd.Flags().GetString("config")
-			cfg, path, err := loadConfig(configPath)
-			if err != nil {
-				if !errors.Is(err, os.ErrNotExist) {
-					return err
-				}
-				d := config.Defaults()
-				cfg = &d
-				path = defaultSavePath()
-			}
-			acct, err := wizard.CaptureAccount(cmd.Context(), wizard.AccountInput{
-				DefaultName: fmt.Sprintf("account-%d", len(cfg.Accounts)+1),
-				UserAgent:   cfg.Defaults.UserAgent,
-			})
-			if err != nil {
-				return err
-			}
-			cfg.Accounts = append(cfg.Accounts, acct)
-			if err := saveConfig(cfg, path); err != nil {
-				return err
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "✓ added account %q to %s\n", acct.Name, path)
-			return nil
+			return addAccountInteractive(cmd)
 		},
 	}
 }
