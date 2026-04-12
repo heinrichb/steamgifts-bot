@@ -24,8 +24,12 @@ defaults:
   # Hard cap on entries per scan cycle (safety net).
   max_entries_per_run: 25
 
-  # Sent as the User-Agent header.
-  user_agent: "steamgifts-bot/0.1 (+https://github.com/heinrichb/steamgifts-bot)"
+  # Sent as the User-Agent header. The default mimics a current desktop
+  # Chrome on Windows so the bot doesn't announce itself to steamgifts.
+  # Override here if you want to match your own browser exactly — the
+  # closer this matches the browser you use to log in, the less suspicious
+  # the traffic looks. You can copy yours from any site's network tab.
+  # user_agent: "Mozilla/5.0 ..."
 
 # Filter priority: each scan cycle walks this list in order and stops when
 # the account drops below `min_points` or hits `max_entries_per_run`.

@@ -18,6 +18,34 @@ A living list of things that would make the bot better. Not promises — just th
 - [ ] **Cookie rotation / re-auth via Steam OpenID** so users don't have to manually refresh `PHPSESSID` periodically.
 - [ ] **Soft-fail on transient HTTP errors** (network blips, 502s) with backoff instead of logging an error every cycle.
 
+## Smart entry / scoring engine
+
+Today the bot enters every joinable giveaway in DOM order, filter by filter. That's leaving wins on the table — a smarter strategy is to **score** each candidate and enter the highest-value ones first, until points run out.
+
+Sketch of how this would fit:
+
+- New `internal/scorer/` package. Pure function: `Score(g Giveaway, ctx ScoreContext) float64`.
+- `ScoreContext` carries the things scoring needs that aren't on the giveaway itself: the user's wishlist, current points, current account level, optional Steam app metadata cache.
+- Runner change: instead of `for _, g := range giveaways`, collect all joinable giveaways from every filter, sort by score descending, then enter in that order until points hit min.
+- Scoring is **additive with weighted components**, all of which can be enabled/disabled and reweighted from `config.yaml`. That way users can build their own strategy without code changes.
+
+Components to implement, in priority order:
+
+- [ ] **Wishlist boost** — large positive weight if `g.Name` is in the user's Steam wishlist. Wishlist filter already prefers these, but a boost lets a wishlist game on the `all` filter still beat random titles. Requires the wishlist-sync feature below.
+- [ ] **Sniper boost** — closing-soon + low-entry-count = high win probability. Score function: `(timeLeft < threshold) * (cost / entries)`. The closer to the deadline and the fewer entries, the higher the boost. Probably the single biggest EV win.
+- [ ] **Level-locked boost** — opt-in flag. When the user is at or above a giveaway's required level, prioritize higher-level-locked entries since they have a smaller eligible audience. Needs the parser to extract `data-level-min` (or whatever the current attribute is) and the runner to know the account's level (already on the front page).
+- [ ] **Popularity / quality boost** — score AAA / highly-rated games higher. Needs an external metadata source. Options:
+  - Steam Web API (free, no key for public app data) for review score and player count
+  - SteamSpy (free, rate-limited) for owner counts
+  - Local cache (SQLite) keyed by Steam appid so we don't refetch every cycle
+- [ ] **Cost efficiency** — small tiebreaker preferring cheaper games when other scores are equal, so the bot doesn't blow all its points on one expensive entry.
+- [ ] **Per-account weight overrides** — one user might run a wishlist-only sniper alt and a wide-net main on the same machine.
+
+Prerequisite features (each useful on their own):
+
+- [ ] **Wishlist sync from a Steam profile URL** — fetch the user's wishlist on a slow cadence, cache to disk, expose to the scorer.
+- [ ] **SQLite metadata cache** — already on the future-features list; the scorer is the main consumer.
+
 ## Features
 
 - [ ] **Proxy support per account** (HTTP / SOCKS5) — useful when running many accounts.
