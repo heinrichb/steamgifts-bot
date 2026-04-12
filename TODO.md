@@ -66,7 +66,7 @@ Sketch of how this would fit:
 - New `internal/scorer/` package. Pure function: `Score(g Giveaway, ctx ScoreContext) float64`.
 - `ScoreContext` carries the things scoring needs that aren't on the giveaway itself: the user's wishlist, current points, current account level, optional Steam app metadata cache.
 - Runner change: instead of `for _, g := range giveaways`, collect all joinable giveaways from every filter, sort by score descending, then enter in that order until points hit min.
-- Scoring is **additive with weighted components**, all of which can be enabled/disabled and reweighted from `config.yaml`. That way users can build their own strategy without code changes.
+- Scoring is **additive with weighted components**, all of which can be enabled/disabled and reweighted from `config.yml`. That way users can build their own strategy without code changes.
 
 Components to implement, in priority order:
 
@@ -96,7 +96,7 @@ Prerequisite features (each useful on their own):
 - [ ] **Discord / Telegram / generic webhook notifications** when you win something.
 - [ ] **Wishlist sync from a Steam profile URL** — auto-update which games to prioritize.
 - [ ] **Per-giveaway scoring** (ROI: points × win-probability based on entries/copies).
-- [ ] **`config.yaml` hot-reload** on `SIGHUP`.
+- [ ] **`config.yml` hot-reload** on `SIGHUP`.
 - [ ] **Backup / restore** of state directory.
 
 ## Observability

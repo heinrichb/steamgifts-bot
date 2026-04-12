@@ -1,8 +1,8 @@
 # steamgifts-bot — Docker Compose deployment
 #
 # Quick start:
-#   1. cp config.example.yaml config.yaml
-#   2. Edit config.yaml and paste your PHPSESSID cookie
+#   1. cp config.example.yml config.yml
+#   2. Edit config.yml and paste your PHPSESSID cookie
 #      (run `docker compose run --rm bot setup` for the interactive wizard)
 #   3. docker compose up -d
 #
@@ -16,7 +16,7 @@ services:
     #   context: .
     container_name: steamgifts-bot
     restart: unless-stopped
-    # config.yaml is bind-mounted read-only; the bot's persistent state
+    # config.yml is bind-mounted read-only; the bot's persistent state
     # (last sync times, future entry history) lives in ./state/ on the
     # host so it survives container restarts and doesn't burn the daily
     # Steam-sync cooldown.
@@ -29,9 +29,9 @@ services:
     # the bind-mounted ./state directory has the right ownership without
     # any chown gymnastics. Override UID/GID in a .env file if needed.
     volumes:
-      - ./config.yaml:/config/config.yaml:ro
+      - ./config.yml:/config/config.yml:ro
       - ./state:/state
-    command: ["run", "--config", "/config/config.yaml", "--state-file", "/state/state.json"]
+    command: ["run", "--config", "/config/config.yml", "--state-file", "/state/state.json"]
     # No ports — the bot only makes outbound HTTPS requests.
     environment:
       - TZ=UTC

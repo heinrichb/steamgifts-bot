@@ -15,18 +15,18 @@ import (
 
 // configCandidates returns the search paths checked when --config is not set.
 // First match wins. We look beside the binary first so a Windows user who
-// double-clicks the .exe and runs the wizard ends up with config.yaml right
+// double-clicks the .exe and runs the wizard ends up with config.yml right
 // next to it (zero-friction discovery).
 func configCandidates() []string {
 	var paths []string
 	if exe, err := os.Executable(); err == nil {
-		paths = append(paths, filepath.Join(filepath.Dir(exe), "config.yaml"))
+		paths = append(paths, filepath.Join(filepath.Dir(exe), "config.yml"))
 	}
 	if cwd, err := os.Getwd(); err == nil {
-		paths = append(paths, filepath.Join(cwd, "config.yaml"))
+		paths = append(paths, filepath.Join(cwd, "config.yml"))
 	}
 	if dir, err := os.UserConfigDir(); err == nil {
-		paths = append(paths, filepath.Join(dir, "steamgifts-bot", "config.yaml"))
+		paths = append(paths, filepath.Join(dir, "steamgifts-bot", "config.yml"))
 	}
 	return paths
 }
@@ -44,12 +44,12 @@ func findConfig() string {
 // defaultSavePath is where the wizard writes a freshly-created config.
 func defaultSavePath() string {
 	if exe, err := os.Executable(); err == nil {
-		return filepath.Join(filepath.Dir(exe), "config.yaml")
+		return filepath.Join(filepath.Dir(exe), "config.yml")
 	}
 	if dir, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(dir, "steamgifts-bot", "config.yaml")
+		return filepath.Join(dir, "steamgifts-bot", "config.yml")
 	}
-	return "config.yaml"
+	return "config.yml"
 }
 
 // loadConfig reads the YAML config from `path` (or auto-discovered location),

@@ -4,7 +4,7 @@
 //
 //  1. CLI flags
 //  2. Environment variables (STEAMGIFTS_*)
-//  3. config.yaml (or any path passed via --config)
+//  3. config.yml (or any path passed via --config)
 //  4. Built-in Defaults() values
 //
 // Loading and merging from disk lives in cli.loadConfig — this package owns

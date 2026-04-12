@@ -5,10 +5,9 @@
 /bin/
 
 # Local user config (must never be committed — contains session cookies)
-config.yaml
 config.yml
 config.local.*
-*.local.yaml
+*.local.yml
 
 # Persistent runtime state — last sync times, future entry history, etc.
 state.json

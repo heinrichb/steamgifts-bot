@@ -37,7 +37,7 @@ type Store struct {
 }
 
 // DefaultPathFor returns the default state-file path beside the given config file.
-// (E.g. /etc/sgbot/config.yaml → /etc/sgbot/state.json.)
+// (E.g. /etc/sgbot/config.yml → /etc/sgbot/state.json.)
 func DefaultPathFor(configPath string) string {
 	if configPath == "" {
 		return "state.json"
