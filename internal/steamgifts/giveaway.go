@@ -16,6 +16,7 @@ type Giveaway struct {
 	Copies     int       // number of copies offered
 	Entries    int       // current entry count
 	EndsAt     time.Time // when the giveaway closes (zero if unparseable)
+	Level      int       // minimum contributor level required (0 = no requirement)
 	Pinned     bool
 	Entered    bool // user has already entered this giveaway
 	Unjoinable bool // faded for any other reason (login required, region locked, etc.)
@@ -23,8 +24,14 @@ type Giveaway struct {
 
 // Joinable reports whether the bot should attempt to enter this giveaway,
 // given the resolved settings for the active account.
-func (g Giveaway) Joinable(currentPoints, minPoints int, allowPinned bool) bool {
+func (g Giveaway) Joinable(currentPoints, minPoints, accountLevel int, allowPinned bool) bool {
 	if g.Entered || g.Unjoinable {
+		return false
+	}
+	// Skip if we know both the requirement and the account level.
+	// If accountLevel is 0 (unparsed), let the server reject — saves
+	// the bot from accidentally skipping everything when parsing fails.
+	if g.Level > 0 && accountLevel > 0 && accountLevel < g.Level {
 		return false
 	}
 	if g.Pinned && !allowPinned {
@@ -47,5 +54,6 @@ func (g Giveaway) Joinable(currentPoints, minPoints int, allowPinned bool) bool 
 type AccountState struct {
 	Username  string
 	Points    int
+	Level     int
 	XSRFToken string
 }

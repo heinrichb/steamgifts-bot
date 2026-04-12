@@ -236,6 +236,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		r.Logger.Info("scanned filter",
 			"filter", filter,
 			"points", page.Points,
+			"level", page.Level,
 			"username", page.Username,
 			"giveaways", len(giveaways),
 		)
@@ -255,7 +256,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 					"name", g.Name, "code", g.Code, "filter", filter)
 				continue
 			}
-			if !g.Joinable(points, minPts, allowPinned) {
+			if !g.Joinable(points, minPts, page.Level, allowPinned) {
 				continue
 			}
 			if r.DryRun {
