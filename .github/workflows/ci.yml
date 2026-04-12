@@ -25,7 +25,10 @@ jobs:
           go-version: "1.26"
           cache: true
 
-      - name: Verify formatting
+      - name: Prettier (YAML, Markdown, JSON)
+        run: npx --yes prettier --check '**/*.{yml,yaml,md,json}' --ignore-path .prettierignore
+
+      - name: Verify formatting (Go)
         run: |
           fmt=$(gofmt -l .)
           if [ -n "$fmt" ]; then

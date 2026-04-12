@@ -19,17 +19,17 @@ make test
 
 ## Make targets
 
-| Target | What it does |
-|---|---|
-| `make build` | Build the binary into `./steamgifts-bot` |
-| `make test` | `go test -race -count=1 ./...` |
-| `make lint` | `golangci-lint run` |
-| `make fmt` | `gofmt -s -w .` and `goimports -w .` |
-| `make vet` | `go vet ./...` |
-| `make tidy` | `go mod tidy` |
-| `make run` | Build and run a `--once --dry-run --log-level debug` cycle |
-| `make check` | Build and run `steamgifts-bot check` |
-| `make docker` | Build the Docker image as `steamgifts-bot:dev` |
+| Target        | What it does                                                |
+| ------------- | ----------------------------------------------------------- |
+| `make build`  | Build the binary into `./steamgifts-bot`                    |
+| `make test`   | `go test -race -count=1 ./...`                              |
+| `make lint`   | `golangci-lint run`                                         |
+| `make fmt`    | `gofmt -s -w .`, `goimports -w .`, and Prettier for YAML/MD |
+| `make vet`    | `go vet ./...`                                              |
+| `make tidy`   | `go mod tidy`                                               |
+| `make run`    | Build and run a `--once --dry-run --log-level debug` cycle  |
+| `make check`  | Build and run `steamgifts-bot check`                        |
+| `make docker` | Build the Docker image as `steamgifts-bot:dev`              |
 
 ## Project layout
 

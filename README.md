@@ -101,17 +101,17 @@ Every key in `config.example.yml` can be set three ways. Precedence (highest fir
 3. `config.yml`
 4. Built-in defaults
 
-| Key | Default | Description |
-|---|---|---|
-| `defaults.min_points` | `50` | Don't enter if it would drop you below this. |
-| `defaults.pause_minutes` | `15` | Sleep between scan cycles. |
-| `defaults.enter_pinned` | `false` | Include pinned/featured giveaways. |
-| `defaults.max_entries_per_run` | `25` | Safety cap. |
-| `defaults.user_agent` | `steamgifts-bot/0.1` | HTTP User-Agent. |
-| `filters` | `[wishlist, group, recommended, new, all]` | Order to scan. Stops when points hit `min_points`. |
-| `accounts[].name` | — | Friendly label. |
-| `accounts[].cookie` | — | PHPSESSID cookie value. |
-| `accounts[].*` | — | Any `defaults.*` key can be overridden per-account. |
+| Key                            | Default                                    | Description                                         |
+| ------------------------------ | ------------------------------------------ | --------------------------------------------------- |
+| `defaults.min_points`          | `50`                                       | Don't enter if it would drop you below this.        |
+| `defaults.pause_minutes`       | `15`                                       | Sleep between scan cycles.                          |
+| `defaults.enter_pinned`        | `false`                                    | Include pinned/featured giveaways.                  |
+| `defaults.max_entries_per_run` | `25`                                       | Safety cap.                                         |
+| `defaults.user_agent`          | `steamgifts-bot/0.1`                       | HTTP User-Agent.                                    |
+| `filters`                      | `[wishlist, group, recommended, new, all]` | Order to scan. Stops when points hit `min_points`.  |
+| `accounts[].name`              | —                                          | Friendly label.                                     |
+| `accounts[].cookie`            | —                                          | PHPSESSID cookie value.                             |
+| `accounts[].*`                 | —                                          | Any `defaults.*` key can be overridden per-account. |
 
 ### CLI commands
 
