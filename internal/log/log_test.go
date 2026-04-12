@@ -31,11 +31,9 @@ func TestParseLevel(t *testing.T) {
 	}
 }
 
-func TestNewWritesPlainToBuffer(t *testing.T) {
-	// A bytes.Buffer is not an *os.File so useColor returns false —
-	// we should get the plain TextHandler with no ANSI escapes.
+func TestNewAutoWritesPlainToBuffer(t *testing.T) {
 	var buf bytes.Buffer
-	logger, err := New(&buf, "info")
+	logger, err := New(&buf, "info", "auto")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -49,9 +47,40 @@ func TestNewWritesPlainToBuffer(t *testing.T) {
 	}
 }
 
+func TestNewJSONFormat(t *testing.T) {
+	var buf bytes.Buffer
+	logger, err := New(&buf, "info", "json")
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	logger.Info("hello", "key", "value")
+	out := buf.String()
+	if !strings.Contains(out, `"msg":"hello"`) || !strings.Contains(out, `"key":"value"`) {
+		t.Errorf("expected JSON output, got %q", out)
+	}
+}
+
+func TestNewTextFormat(t *testing.T) {
+	var buf bytes.Buffer
+	logger, err := New(&buf, "info", "text")
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	logger.Info("hello")
+	if !strings.Contains(buf.String(), "hello") {
+		t.Errorf("expected text output, got %q", buf.String())
+	}
+}
+
+func TestNewInvalidFormat(t *testing.T) {
+	if _, err := New(nil, "info", "xml"); err == nil {
+		t.Error("expected error for unknown format")
+	}
+}
+
 func TestAccountChildLogger(t *testing.T) {
 	var buf bytes.Buffer
-	logger, _ := New(&buf, "info")
+	logger, _ := New(&buf, "info", "auto")
 	child := Account(logger, "alt")
 	child.Info("hi")
 	if !strings.Contains(buf.String(), "account=alt") {

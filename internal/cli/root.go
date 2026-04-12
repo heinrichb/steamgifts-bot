@@ -53,6 +53,7 @@ background service, or run it in Docker.`,
 
 	root.PersistentFlags().StringP("config", "c", "", "path to config.yml (default: auto-discovered)")
 	root.PersistentFlags().String("log-level", "info", "log level: debug, info, warn, error")
+	root.PersistentFlags().String("log-format", "auto", "log format: auto, text, json")
 
 	root.AddCommand(
 		newRunCmd(),

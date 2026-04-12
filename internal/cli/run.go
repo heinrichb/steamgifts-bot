@@ -53,8 +53,9 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 	configPath, _ := cmd.Flags().GetString("config")
 	statePath, _ := cmd.Flags().GetString("state-file")
 	levelStr, _ := cmd.Flags().GetString("log-level")
+	logFormat, _ := cmd.Flags().GetString("log-format")
 
-	logger, err := logpkg.New(os.Stderr, levelStr)
+	logger, err := logpkg.New(os.Stderr, levelStr, logFormat)
 	if err != nil {
 		return err
 	}
