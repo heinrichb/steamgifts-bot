@@ -124,7 +124,7 @@ func Account(parent *slog.Logger, name string) *slog.Logger {
 var sensitiveKeys = map[string]bool{
 	"cookie": true, "phpsessid": true, "token": true,
 	"xsrf_token": true, "xsrf": true, "password": true,
-	"secret": true, "webhook": true,
+	"secret": true, "webhook": true, "proxy": true,
 }
 
 // redactingHandler wraps a slog.Handler and replaces sensitive attribute values.

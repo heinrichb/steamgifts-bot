@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const discordColorGreen = 0x00FF00
+
 // Notifier sends win notifications to configured targets.
 type Notifier struct {
 	DiscordURL    string
@@ -62,7 +64,7 @@ func (n *Notifier) sendDiscord(ctx context.Context, win Win) error {
 	embed := map[string]any{
 		"title":       fmt.Sprintf("🎉 Won: %s", win.GameName),
 		"description": fmt.Sprintf("Account **%s** won a giveaway!", win.AccountName),
-		"color":       0x00FF00,
+		"color":       discordColorGreen,
 		"fields": []map[string]any{
 			{"name": "Game", "value": win.GameName, "inline": true},
 			{"name": "Account", "value": win.AccountName, "inline": true},

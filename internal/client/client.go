@@ -84,7 +84,7 @@ func New(cookie, userAgent string, opts ...Option) (*Client, error) {
 	c := &Client{
 		httpc: &http.Client{
 			Jar:     jar,
-			Timeout: 30 * time.Second,
+			Timeout: defaultTimeout,
 		},
 		baseURL:   BaseURL,
 		userAgent: userAgent,
@@ -139,7 +139,11 @@ func (c *Client) PostForm(ctx context.Context, path string, form url.Values) ([]
 	return c.do(ctx, http.MethodPost, path, body, headers)
 }
 
-const maxRetries = 3
+const (
+	maxRetries     = 3
+	backoffBase    = 5 * time.Second
+	defaultTimeout = 30 * time.Second
+)
 
 func (c *Client) do(ctx context.Context, method, path string, body io.Reader, headers map[string]string) ([]byte, error) {
 	target, err := c.resolve(path)
@@ -223,7 +227,7 @@ func retryable(status int) bool {
 }
 
 func backoff(ctx context.Context, attempt int) error {
-	d := time.Duration(1<<uint(attempt)) * 5 * time.Second // 5s, 10s, 20s
+	d := time.Duration(1<<uint(attempt)) * backoffBase
 	t := time.NewTimer(d)
 	defer t.Stop()
 	select {

@@ -197,9 +197,10 @@ func (r *Runner) runOnce(ctx context.Context) error {
 
 	// --- Phase 1: scan all filter pages and collect joinable candidates ---
 	syncedThisCycle := false
-	seen := make(map[string]bool)
+	estimatedCandidates := maxPages * 50 * len(filters)
+	seen := make(map[string]bool, estimatedCandidates)
 	wishlistCodes := make(map[string]bool)
-	var candidates []sg.Giveaway
+	candidates := make([]sg.Giveaway, 0, estimatedCandidates)
 	var xsrf string
 	var accountLevel int
 	var latestPoints int
