@@ -26,7 +26,8 @@ func newAccountsListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List configured accounts (cookies redacted)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cfg, path, err := loadConfig(must(cmd.Flags().GetString("config")))
+			configPath, _ := cmd.Flags().GetString("config")
+			cfg, path, err := loadConfig(configPath)
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
 					return errors.New("no config found — run `steamgifts-bot setup` to create one")
@@ -36,13 +37,11 @@ func newAccountsListCmd() *cobra.Command {
 			fmt.Fprintf(cmd.OutOrStdout(), "config: %s\n\n", path)
 			tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 			fmt.Fprintln(tw, "NAME\tCOOKIE\tFILTERS")
-			for i, a := range cfg.Accounts {
-				resolved := cfg.Resolved(i)
+			for _, a := range cfg.Accounts {
 				filters := "(global defaults)"
 				if len(a.Filters) > 0 {
 					filters = fmt.Sprint(a.Filters)
 				}
-				_ = resolved
 				fmt.Fprintf(tw, "%s\t%s\t%s\n", a.Name, redact(a.Cookie), filters)
 			}
 			return tw.Flush()
@@ -89,7 +88,8 @@ func newAccountsRemoveCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-			cfg, path, err := loadConfig(must(cmd.Flags().GetString("config")))
+			configPath, _ := cmd.Flags().GetString("config")
+			cfg, path, err := loadConfig(configPath)
 			if err != nil {
 				return err
 			}
@@ -121,5 +121,3 @@ func redact(cookie string) string {
 	}
 	return cookie[:4] + "…" + cookie[len(cookie)-4:]
 }
-
-func must(s string, _ error) string { return s }

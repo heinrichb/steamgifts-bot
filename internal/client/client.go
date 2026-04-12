@@ -15,12 +15,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/heinrichb/steamgifts-bot/internal/config"
 	"github.com/heinrichb/steamgifts-bot/internal/ratelimit"
 )
 
 // BaseURL is the canonical steamgifts host. Tests override it via WithBaseURL.
 const BaseURL = "https://www.steamgifts.com"
+
+// DefaultUserAgent mimics a current desktop Chrome so the bot doesn't
+// announce itself to steamgifts on every request.
+const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+	"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
 // Client is a per-account HTTP client. Construct with New.
 type Client struct {
@@ -73,7 +77,7 @@ func New(cookie, userAgent string, opts ...Option) (*Client, error) {
 		o(c)
 	}
 	if c.userAgent == "" {
-		c.userAgent = config.DefaultUserAgent
+		c.userAgent = DefaultUserAgent
 	}
 	if err := c.seedCookie(cookie); err != nil {
 		return nil, err

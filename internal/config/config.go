@@ -17,36 +17,14 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/heinrichb/steamgifts-bot/internal/client"
+	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
-// Filter names accepted in the YAML `filters` list. Each maps to a
-// canonical /giveaways/search URL inside the steamgifts package — see
-// internal/steamgifts/filters.go for the URL mapping.
-const (
-	FilterWishlist    = "wishlist"
-	FilterGroup       = "group"
-	FilterRecommended = "recommended"
-	FilterNew         = "new"
-	FilterDLC         = "dlc"
-	FilterMultiCopy   = "multicopy"
-	FilterAll         = "all"
-)
-
-// DefaultUserAgent mimics a current desktop Chrome so the bot doesn't
-// announce itself to steamgifts on every request.
-const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-	"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-
-// ValidFilters is the canonical set of filter identifiers.
-var ValidFilters = []string{
-	FilterWishlist,
-	FilterGroup,
-	FilterRecommended,
-	FilterNew,
-	FilterDLC,
-	FilterMultiCopy,
-	FilterAll,
-}
+// DefaultUserAgent re-exports client.DefaultUserAgent so legacy callers
+// still have a stable import. New code should prefer client.DefaultUserAgent.
+const DefaultUserAgent = client.DefaultUserAgent
 
 // Config is the root user-facing configuration object.
 type Config struct {
@@ -98,7 +76,7 @@ func Defaults() Config {
 			SteamSyncIntervalHours: &syncInterval,
 		},
 		Filters: []string{
-			FilterWishlist, FilterGroup, FilterRecommended, FilterNew, FilterAll,
+			sg.FilterWishlist, sg.FilterGroup, sg.FilterRecommended, sg.FilterNew, sg.FilterAll,
 		},
 		Accounts: nil,
 	}
@@ -219,20 +197,11 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("accounts[%d] (%s): steam_sync_interval_hours must be >= 1 to avoid hammering the site", i, name)
 		}
 		for _, f := range resolved.Filters {
-			if !isValidFilter(f) {
+			if !sg.IsValidFilter(f) {
 				return fmt.Errorf("accounts[%d] (%s): unknown filter %q (valid: %s)",
-					i, name, f, strings.Join(ValidFilters, ", "))
+					i, name, f, strings.Join(sg.ValidFilterNames(), ", "))
 			}
 		}
 	}
 	return nil
-}
-
-func isValidFilter(name string) bool {
-	for _, v := range ValidFilters {
-		if v == name {
-			return true
-		}
-	}
-	return false
 }

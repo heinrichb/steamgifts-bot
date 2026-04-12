@@ -25,7 +25,7 @@ func ParseListPage(html []byte) (AccountState, []Giveaway, error) {
 		return AccountState{}, nil, err
 	}
 
-	var giveaways []Giveaway
+	giveaways := make([]Giveaway, 0, 32)
 	doc.Find(".giveaway__row-inner-wrap").Each(func(_ int, s *goquery.Selection) {
 		g, ok := parseGiveawayRow(s)
 		if ok {
@@ -134,13 +134,11 @@ func parseGiveawayRow(s *goquery.Selection) (Giveaway, bool) {
 		g.Pinned = true
 	}
 
-	// Faded rows are unjoinable in some way; the most common reason is
-	// "already entered". The site marks entered rows with a specific
-	// `is-faded` class on the inner wrap and a "fa-check" icon.
-	if s.HasClass("is-faded") || s.HasClass("is-unjoinable") {
-		g.Unjoinable = true
-	}
-	if s.Find(".giveaway__row-outer-wrap.is-faded").Length() > 0 {
+	// Steamgifts puts is-faded on either the outer wrap (more common) or
+	// the inner wrap — check both. is-faded means "already entered" or
+	// otherwise unjoinable (region-locked, login-required, etc.).
+	if s.HasClass("is-faded") || s.HasClass("is-unjoinable") ||
+		s.Closest(".giveaway__row-outer-wrap").HasClass("is-faded") {
 		g.Unjoinable = true
 	}
 	if s.Find(`.fa.fa-check`).Length() > 0 {
