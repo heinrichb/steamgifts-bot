@@ -1,14 +1,6 @@
-// Package log wraps log/slog with a couple of project conveniences:
-// level parsing, automatic TTY-aware colorization (via lmittmann/tint),
-// and a per-account child logger helper.
-//
-// Output mode is auto-detected:
-//
-//   - Interactive terminals (a real TTY, NO_COLOR not set, TERM != "dumb")
-//     get the tint handler — colorized levels, dim timestamps, highlighted
-//     keys. Pleasant for `setup`, `check`, and a developer running `run`.
-//   - Everything else (Docker, systemd, redirected stdout, NO_COLOR=1)
-//     gets slog's plain TextHandler so log aggregators stay happy.
+// Package log wraps log/slog with project conveniences: level parsing,
+// format selection (text/json/auto), TTY-aware colorization, and a
+// per-account child logger helper.
 package log
 
 import (
@@ -23,9 +15,10 @@ import (
 	"github.com/mattn/go-isatty"
 )
 
-// New constructs a slog.Logger writing to w at the given level.
-// If w is nil, os.Stderr is used. Pass an empty levelStr for "info".
-func New(w io.Writer, levelStr string) (*slog.Logger, error) {
+// New constructs a slog.Logger writing to w at the given level and format.
+// Format: "auto" (default) = color on TTY, plain text otherwise.
+// "json" = structured JSON for log aggregators. "text" = plain text always.
+func New(w io.Writer, levelStr, format string) (*slog.Logger, error) {
 	if w == nil {
 		w = os.Stderr
 	}
@@ -33,22 +26,27 @@ func New(w io.Writer, levelStr string) (*slog.Logger, error) {
 	if err != nil {
 		return nil, err
 	}
+	opts := &slog.HandlerOptions{Level: level}
 
-	if useColor(w) {
-		h := tint.NewHandler(w, &tint.Options{
-			Level:      level,
-			TimeFormat: time.Kitchen,
-			NoColor:    false,
-		})
-		return slog.New(h), nil
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "json":
+		return slog.New(slog.NewJSONHandler(w, opts)), nil
+	case "text":
+		return slog.New(slog.NewTextHandler(w, opts)), nil
+	case "", "auto":
+		if useColor(w) {
+			h := tint.NewHandler(w, &tint.Options{
+				Level:      level,
+				TimeFormat: time.Kitchen,
+			})
+			return slog.New(h), nil
+		}
+		return slog.New(slog.NewTextHandler(w, opts)), nil
+	default:
+		return nil, fmt.Errorf("unknown log format %q (valid: auto, text, json)", format)
 	}
-	h := slog.NewTextHandler(w, &slog.HandlerOptions{Level: level})
-	return slog.New(h), nil
 }
 
-// useColor reports whether w is an interactive terminal that should
-// receive colorized output. Honors the NO_COLOR convention
-// (https://no-color.org) and TERM=dumb.
 func useColor(w io.Writer) bool {
 	if os.Getenv("NO_COLOR") != "" {
 		return false

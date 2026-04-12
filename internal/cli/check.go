@@ -41,7 +41,8 @@ hook up to a healthcheck or smoke test.`,
 func runCheck(cmd *cobra.Command, _ []string) error {
 	configPath, _ := cmd.Flags().GetString("config")
 	levelStr, _ := cmd.Flags().GetString("log-level")
-	logger, err := logpkg.New(os.Stderr, levelStr)
+	logFormat, _ := cmd.Flags().GetString("log-format")
+	logger, err := logpkg.New(os.Stderr, levelStr, logFormat)
 	if err != nil {
 		return err
 	}
