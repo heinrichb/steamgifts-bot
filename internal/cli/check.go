@@ -66,6 +66,7 @@ func runCheck(cmd *cobra.Command, _ []string) error {
 		checkLabel.Render("ACCOUNT")+"\t"+
 			checkLabel.Render("USERNAME")+"\t"+
 			checkLabel.Render("POINTS")+"\t"+
+			checkLabel.Render("LEVEL")+"\t"+
 			checkLabel.Render("STATUS"))
 
 	anyFailed := false
@@ -75,11 +76,11 @@ func runCheck(cmd *cobra.Command, _ []string) error {
 		switch {
 		case err != nil:
 			anyFailed = true
-			fmt.Fprintf(tw, "%s\t-\t-\t%s\n",
+			fmt.Fprintf(tw, "%s\t-\t-\t-\t%s\n",
 				acct.Name, checkFail.Render("FAIL: "+err.Error()))
 		default:
-			fmt.Fprintf(tw, "%s\t%s\t%d\t%s\n",
-				acct.Name, st.Username, st.Points, checkOK.Render("OK"))
+			fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n",
+				acct.Name, st.Username, st.Points, st.Level, checkOK.Render("OK"))
 		}
 	}
 	_ = tw.Flush()

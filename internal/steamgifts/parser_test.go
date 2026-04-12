@@ -26,11 +26,14 @@ func TestParseListPageBasic(t *testing.T) {
 	if state.Points != 137 {
 		t.Errorf("points: got %d, want 137", state.Points)
 	}
+	if state.Level != 5 {
+		t.Errorf("level: got %d, want 5", state.Level)
+	}
 	if state.XSRFToken != "abc123token" {
 		t.Errorf("xsrf: got %q", state.XSRFToken)
 	}
-	if len(gs) != 4 {
-		t.Fatalf("expected 4 giveaways, got %d: %+v", len(gs), gs)
+	if len(gs) != 5 {
+		t.Fatalf("expected 5 giveaways, got %d: %+v", len(gs), gs)
 	}
 
 	byCode := map[string]Giveaway{}
@@ -44,6 +47,9 @@ func TestParseListPageBasic(t *testing.T) {
 	}
 	if super.Name != "Super Game" || super.Cost != 50 || super.Copies != 3 || super.Entries != 42 {
 		t.Errorf("super game parsed wrong: %+v", super)
+	}
+	if super.Level != 1 {
+		t.Errorf("AAAA1 level: got %d, want 1", super.Level)
 	}
 	if super.Pinned || super.Entered || super.Unjoinable {
 		t.Errorf("super game flags wrong: %+v", super)
@@ -67,6 +73,17 @@ func TestParseListPageBasic(t *testing.T) {
 	if pinned.Entries != 1234 {
 		t.Errorf("CCCC3 entries with comma not parsed: %d", pinned.Entries)
 	}
+
+	levelLocked, ok := byCode["EEEE5"]
+	if !ok {
+		t.Fatal("missing EEEE5")
+	}
+	if levelLocked.Level != 8 {
+		t.Errorf("EEEE5 level: got %d, want 8", levelLocked.Level)
+	}
+	if levelLocked.Cost != 20 || levelLocked.Entries != 3 {
+		t.Errorf("EEEE5 parsed wrong: %+v", levelLocked)
+	}
 }
 
 func TestJoinableLogic(t *testing.T) {
@@ -79,28 +96,38 @@ func TestJoinableLogic(t *testing.T) {
 		byCode[g.Code] = g
 	}
 
-	// Currently 137 points, min 50 — Super Game costs 50, 137-50=87 >= 50 ✓
-	if !byCode["AAAA1"].Joinable(137, 50, false) {
-		t.Error("AAAA1 should be joinable with 137pts/min50")
+	accountLevel := 5
+
+	// AAAA1: 137pts, cost 50, level 1 required, account level 5 — joinable
+	if !byCode["AAAA1"].Joinable(137, 50, accountLevel, false) {
+		t.Error("AAAA1 should be joinable with 137pts/min50/level5")
 	}
 	// Min too high.
-	if byCode["AAAA1"].Joinable(137, 100, false) {
+	if byCode["AAAA1"].Joinable(137, 100, accountLevel, false) {
 		t.Error("AAAA1 should not be joinable when min would be violated")
 	}
 	// Already-entered.
-	if byCode["BBBB2"].Joinable(137, 0, false) {
+	if byCode["BBBB2"].Joinable(137, 0, accountLevel, false) {
 		t.Error("BBBB2 already entered, must not be joinable")
 	}
 	// Pinned blocked unless allowed.
-	if byCode["CCCC3"].Joinable(137, 0, false) {
+	if byCode["CCCC3"].Joinable(137, 0, accountLevel, false) {
 		t.Error("CCCC3 pinned should be skipped when allowPinned=false")
 	}
-	if !byCode["CCCC3"].Joinable(137, 0, true) {
+	if !byCode["CCCC3"].Joinable(137, 0, accountLevel, true) {
 		t.Error("CCCC3 pinned should join when allowPinned=true")
 	}
 	// Expired.
-	if byCode["DDDD4"].Joinable(137, 0, true) {
+	if byCode["DDDD4"].Joinable(137, 0, accountLevel, true) {
 		t.Error("DDDD4 expired must not be joinable")
+	}
+	// Level locked: requires 8, account is 5 — must not be joinable.
+	if byCode["EEEE5"].Joinable(137, 0, accountLevel, true) {
+		t.Error("EEEE5 level-locked should not be joinable at level 5")
+	}
+	// Level locked: at sufficient level — joinable.
+	if !byCode["EEEE5"].Joinable(137, 0, 10, true) {
+		t.Error("EEEE5 should be joinable at level 10")
 	}
 }
 

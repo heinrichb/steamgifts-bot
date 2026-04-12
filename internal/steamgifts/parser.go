@@ -66,6 +66,15 @@ func parseAccountState(doc *goquery.Document) (AccountState, error) {
 		st.Points = atoiSafe(pts)
 	}
 
+	// Account level: <span title="6.38">Level 6</span> near the nav points.
+	doc.Find(`span`).Each(func(_ int, s *goquery.Selection) {
+		if m := levelRe.FindStringSubmatch(s.Text()); len(m) == 2 {
+			if _, hasTitle := s.Attr("title"); hasTitle {
+				st.Level = atoiSafe(m[1])
+			}
+		}
+	})
+
 	return st, nil
 }
 
@@ -74,6 +83,7 @@ var (
 	copiesRe  = regexp.MustCompile(`(\d+)\s+Copies?`)
 	entriesRe = regexp.MustCompile(`(\d[\d,]*)\s+entries?`)
 	codeRe    = regexp.MustCompile(`/giveaway/([A-Za-z0-9]+)/`)
+	levelRe   = regexp.MustCompile(`Level\s+(\d+)`)
 )
 
 func parseGiveawayRow(s *goquery.Selection) (Giveaway, bool) {
@@ -125,6 +135,15 @@ func parseGiveawayRow(s *goquery.Selection) (Giveaway, bool) {
 				g.EndsAt = time.Unix(i, 0)
 				return false
 			}
+		}
+		return true
+	})
+
+	// Required contributor level, e.g. <div class="giveaway__column--contributor-level ...">Level 2+</div>
+	s.Find(`[class*="giveaway__column--contributor-level"]`).EachWithBreak(func(_ int, el *goquery.Selection) bool {
+		if m := levelRe.FindStringSubmatch(el.Text()); len(m) == 2 {
+			g.Level = atoiSafe(m[1])
+			return false
 		}
 		return true
 	})
