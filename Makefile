@@ -1,4 +1,4 @@
-.PHONY: build test lint fmt fmt-check vet tidy run check clean docker refresh-fixtures
+.PHONY: build build-windows build-all test lint fmt fmt-check vet tidy run check clean docker refresh-fixtures
 
 BINARY := steamgifts-bot
 PKG    := ./...
@@ -38,6 +38,11 @@ check: build
 clean:
 	rm -f $(BINARY) $(BINARY).exe
 	rm -rf dist/
+
+build-windows:
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -H windowsgui" -o dist/$(BINARY).exe ./cmd/steamgifts-bot
+
+build-all: build build-windows
 
 docker:
 	docker build -t $(BINARY):dev .
