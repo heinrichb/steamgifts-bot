@@ -27,7 +27,7 @@ A living list of things that would make the bot better. Not promises — just th
 - [ ] **Auto cookie capture via local proxy** — a simple paste form is no better than the terminal; this needs to proxy the steamgifts login flow and intercept the Set-Cookie header automatically. Significantly more complex (HTTPS, redirect chain, Steam OpenID) but would be the real UX breakthrough.
 - [ ] **GUI subsystem Windows build** — eliminate the .bat launcher by building with `-H windowsgui`
 - [ ] **Code-signed Windows builds** (Authenticode) so SmartScreen stops warning
-- [ ] **Auto-update check** on startup with opt-in download
+- [x] **Auto-update check** on startup via GitHub Releases API (log-only, never downloads)
 
 ## Scorer enhancements
 
@@ -44,7 +44,7 @@ A living list of things that would make the bot better. Not promises — just th
 
 ## Reliability
 
-- [ ] **Captcha detection + alerting** — pause + notify instead of burning entries
+- [x] **Captcha detection** — detects reCAPTCHA/hCaptcha, tells user to solve in browser
 - [ ] **Cookie rotation / re-auth via Steam OpenID**
 
 ## Features
@@ -64,4 +64,4 @@ A living list of things that would make the bot better. Not promises — just th
 
 ## Internals
 
-- [ ] **Parser fixture refresh tool** — `make refresh-fixtures` fetches current pages into `testdata/`
+- [x] **Parser fixture refresh tool** — `make refresh-fixtures` fetches and redacts real pages
