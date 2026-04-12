@@ -14,6 +14,10 @@ import (
 
 const discordColorGreen = 0x00FF00
 
+// telegramBaseURL is the Telegram Bot API base URL.
+// Tests override this to point at an httptest server.
+var telegramBaseURL = "https://api.telegram.org"
+
 // Notifier sends win notifications to configured targets.
 type Notifier struct {
 	DiscordURL    string
@@ -82,7 +86,7 @@ func (n *Notifier) sendTelegram(ctx context.Context, win Win) error {
 	if win.GiveawayURL != "" {
 		text += fmt.Sprintf("\n[View giveaway](%s)", win.GiveawayURL)
 	}
-	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", n.TelegramToken)
+	url := fmt.Sprintf("%s/bot%s/sendMessage", telegramBaseURL, n.TelegramToken)
 	payload := map[string]any{
 		"chat_id":    n.TelegramChat,
 		"text":       text,

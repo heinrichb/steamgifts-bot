@@ -1,4 +1,4 @@
-.PHONY: build build-windows build-all test lint fmt fmt-check vet tidy run check clean docker refresh-fixtures
+.PHONY: build build-windows build-all test test-cover test-cover-html lint fmt fmt-check vet tidy run check clean docker refresh-fixtures
 
 BINARY := steamgifts-bot
 PKG    := ./...
@@ -8,6 +8,14 @@ build:
 
 test:
 	go test -race -count=1 $(PKG)
+
+test-cover:
+	go test -race -count=1 -coverprofile=coverage.out $(PKG)
+	@go tool cover -func=coverage.out | go tool coverage-formatter
+
+test-cover-html:
+	go test -race -count=1 -coverprofile=coverage.out $(PKG)
+	go tool cover -html=coverage.out
 
 lint:
 	golangci-lint run
@@ -36,11 +44,11 @@ check: build
 	./$(BINARY) check
 
 clean:
-	rm -f $(BINARY) $(BINARY).exe
+	rm -f $(BINARY) $(BINARY).exe coverage.out
 	rm -rf dist/
 
 build-windows:
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -H windowsgui" -o dist/$(BINARY).exe ./cmd/steamgifts-bot
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o dist/$(BINARY).exe ./cmd/steamgifts-bot
 
 build-all: build build-windows
 
