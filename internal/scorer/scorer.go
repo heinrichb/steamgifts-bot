@@ -27,13 +27,16 @@ const (
 	wishlistWeight       = 5.0
 	sniperWeight         = 10.0
 	sniperThresholdHours = 2.0
+	levelWeight          = 3.0
+	levelMaxBoost        = 10 // level requirement above which the boost is capped
 	costWeight           = 1.0
 	maxCost              = 50.0
 )
 
 // Context carries per-cycle data the scorer needs beyond the giveaway itself.
 type Context struct {
-	WishlistCodes map[string]bool // giveaway codes found on the wishlist filter
+	WishlistCodes map[string]bool
+	AccountLevel  int
 }
 
 // Candidate wraps a giveaway with its computed score.
@@ -61,11 +64,24 @@ func Rank(giveaways []sg.Giveaway, sctx Context) []Candidate {
 }
 
 func score(g sg.Giveaway, sctx Context, now time.Time) float64 {
-	s := sniperScore(g, now) + costScore(g)
+	s := sniperScore(g, now) + costScore(g) + levelScore(g, sctx.AccountLevel)
 	if sctx.WishlistCodes[g.Code] {
 		s += wishlistWeight
 	}
 	return s
+}
+
+// levelScore boosts giveaways with higher level requirements since fewer
+// users are eligible, improving win odds. Scales linearly up to levelMaxBoost.
+func levelScore(g sg.Giveaway, accountLevel int) float64 {
+	if g.Level <= 0 || accountLevel <= 0 {
+		return 0
+	}
+	lvl := float64(g.Level)
+	if lvl > float64(levelMaxBoost) {
+		lvl = float64(levelMaxBoost)
+	}
+	return levelWeight * (lvl / float64(levelMaxBoost))
 }
 
 // sniperScore boosts giveaways that are closing soon with few entries
