@@ -9,6 +9,7 @@ const (
 	menuRunDryRun      = "dry-run"
 	menuCheck          = "check"
 	menuAddAccount     = "add-account"
+	menuBackup         = "backup"
 	menuServiceInstall = "install-service"
 	menuServiceStatus  = "service-status"
 	menuSetup          = "setup"
@@ -28,6 +29,7 @@ func showMenu() (string, error) {
 			huh.NewOption("Run bot (dry-run — no entries submitted)", menuRunDryRun),
 			huh.NewOption("Check accounts (validate cookies + show points)", menuCheck),
 			huh.NewOption("Add an account", menuAddAccount),
+			huh.NewOption("Back up config + state", menuBackup),
 			huh.NewOption("Install as background service", menuServiceInstall),
 			huh.NewOption("Background service status", menuServiceStatus),
 			huh.NewOption("Re-run setup wizard", menuSetup),

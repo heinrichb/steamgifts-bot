@@ -19,33 +19,41 @@ make test
 
 ## Make targets
 
-| Target        | What it does                                                |
-| ------------- | ----------------------------------------------------------- |
-| `make build`  | Build the binary into `./steamgifts-bot`                    |
-| `make test`   | `go test -race -count=1 ./...`                              |
-| `make lint`   | `golangci-lint run`                                         |
-| `make fmt`    | `gofmt -s -w .`, `goimports -w .`, and Prettier for YAML/MD |
-| `make vet`    | `go vet ./...`                                              |
-| `make tidy`   | `go mod tidy`                                               |
-| `make run`    | Build and run a `--once --dry-run --log-level debug` cycle  |
-| `make check`  | Build and run `steamgifts-bot check`                        |
-| `make docker` | Build the Docker image as `steamgifts-bot:dev`              |
+| Target                  | What it does                                                    |
+| ----------------------- | --------------------------------------------------------------- |
+| `make build`            | Build the binary into `./steamgifts-bot`                        |
+| `make test`             | `go test -race -count=1 ./...`                                  |
+| `make lint`             | `golangci-lint run`                                             |
+| `make fmt`              | `gofmt -s -w .`, `goimports -w .`, and Prettier for YAML/MD     |
+| `make vet`              | `go vet ./...`                                                  |
+| `make tidy`             | `go mod tidy`                                                   |
+| `make run`              | Build and run a `--once --dry-run --log-level debug` cycle      |
+| `make check`            | Build and run `steamgifts-bot check`                            |
+| `make docker`           | Build the Docker image as `steamgifts-bot:dev`                  |
+| `make refresh-fixtures` | Fetch real steamgifts pages into `testdata/` (needs config.yml) |
 
 ## Project layout
 
 ```
-cmd/steamgifts-bot/    # CLI entrypoint (main.go)
+cmd/steamgifts-bot/    # CLI entrypoint (main.go + Windows console helpers)
+cmd/refresh-fixtures/  # dev tool: fetch real HTML fixtures
 internal/
   account/             # per-account runner + orchestrator
-  cli/                 # cobra command tree
-  client/              # HTTP client wrapper
-  config/              # YAML schema + validation
-  log/                 # slog wrapper
+  cli/                 # cobra command tree + menu + backup
+  client/              # HTTP client with retry + proxy
+  config/              # YAML schema + validation + scorer weights
+  log/                 # slog wrapper with dual output + redaction
+  metrics/             # Prometheus /metrics endpoint
+  notify/              # Discord + Telegram win notifications
   ratelimit/           # jittered sleeper
-  service/             # systemd / Scheduled Task install
-  steamgifts/          # parser + entry submission (the domain)
+  scorer/              # smart entry scoring (sniper, wishlist, level, EV)
+  service/             # systemd / Startup folder / LaunchAgent install
+  state/               # persistent JSON state (last sync times)
+  steamgifts/          # HTML parser + entry submission + sync + wins
+  update/              # GitHub Releases version check
+  web/                 # embedded dashboard (HTML templates)
   wizard/              # first-run TUI flow
-testdata/              # parser fixtures (HTML)
+deploy/helm/           # Kubernetes Helm chart
 ```
 
 The `steamgifts/` package is where 90% of bug reports will land. It owns the HTML parser and the entry POST.

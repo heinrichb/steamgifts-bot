@@ -88,6 +88,8 @@ func runMenu(cmd *cobra.Command, args []string) error {
 		return runCheck(cmd, args)
 	case menuAddAccount:
 		return addAccountInteractive(cmd)
+	case menuBackup:
+		return newBackupCreateCmd().RunE(cmd, nil)
 	case menuServiceInstall:
 		path, serr := service.Install()
 		if serr != nil {
