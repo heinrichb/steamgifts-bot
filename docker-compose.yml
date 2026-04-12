@@ -32,10 +32,11 @@ services:
       - ./config.yml:/config/config.yml:ro
       - ./state:/state
     command: ["run", "--config", "/config/config.yml", "--state-file", "/state/state.json"]
-    # Uncomment to enable Prometheus metrics scraping:
-    # command: ["run", "--config", "/config/config.yml", "--state-file", "/state/state.json", "--metrics-addr", ":9090"]
+    # Uncomment to enable Prometheus metrics and/or web dashboard:
+    # command: ["run", "--config", "/config/config.yml", "--state-file", "/state/state.json", "--metrics-addr", ":9090", "--dashboard-addr", ":8080"]
     # ports:
-    #   - "9090:9090"
+    #   - "9090:9090"  # Prometheus /metrics
+    #   - "8080:8080"  # Web dashboard
     environment:
       - TZ=UTC
     user: "${UID:-1000}:${GID:-1000}"

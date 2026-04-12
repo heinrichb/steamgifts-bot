@@ -100,33 +100,44 @@ Every key in `config.example.yml` can also be set via environment variable. Prec
 2. `config.yml`
 3. Built-in defaults
 
-| Key                            | Default                                    | Description                                         |
-| ------------------------------ | ------------------------------------------ | --------------------------------------------------- |
-| `defaults.min_points`          | `50`                                       | Don't enter if it would drop you below this.        |
-| `defaults.pause_minutes`       | `15`                                       | Sleep between scan cycles.                          |
-| `defaults.enter_pinned`        | `false`                                    | Include pinned/featured giveaways.                  |
-| `defaults.max_entries_per_run` | `25`                                       | Safety cap.                                         |
-| `defaults.user_agent`          | Current Chrome UA                          | HTTP User-Agent (mimics a real browser by default). |
-| `filters`                      | `[wishlist, group, recommended, new, all]` | Order to scan. Stops when points hit `min_points`.  |
-| `accounts[].name`              | —                                          | Friendly label.                                     |
-| `accounts[].cookie`            | —                                          | PHPSESSID cookie value.                             |
-| `accounts[].*`                 | —                                          | Any `defaults.*` key can be overridden per-account. |
+| Key                            | Default                  | Description                                                               |
+| ------------------------------ | ------------------------ | ------------------------------------------------------------------------- |
+| `defaults.min_points`          | `50`                     | Don't enter if it would drop you below this.                              |
+| `defaults.pause_minutes`       | `15`                     | Sleep between scan cycles.                                                |
+| `defaults.enter_pinned`        | `false`                  | Include pinned/featured giveaways.                                        |
+| `defaults.max_entries_per_run` | `25`                     | Safety cap on entries per cycle.                                          |
+| `defaults.max_pages`           | `3`                      | Listing pages per filter (more = wider candidate pool).                   |
+| `defaults.max_entries_per_app` | `0`                      | Per-game entry cap (0 = unlimited).                                       |
+| `defaults.proxy_url`           | —                        | HTTP/SOCKS5 proxy (e.g. `socks5://host:1080`).                            |
+| `defaults.steam_sync_enabled`  | `true`                   | Auto-sync account with Steam once per 24h.                                |
+| `filters`                      | `[wishlist, group, ...]` | Which pages to scan. Also accepts raw URLs (`/giveaways/search?...`).     |
+| `scorer.*`                     | See config.example.yml   | Scoring weights (wishlist, sniper, level, cost_efficiency, sniper_hours). |
+| `discord_webhook_url`          | —                        | Discord webhook for win notifications.                                    |
+| `telegram_bot_token`           | —                        | Telegram bot token for win notifications.                                 |
+| `telegram_chat_id`             | —                        | Telegram chat ID for win notifications.                                   |
+| `accounts[].name`              | —                        | Friendly label.                                                           |
+| `accounts[].cookie`            | —                        | PHPSESSID cookie value.                                                   |
+| `accounts[].*`                 | —                        | Any `defaults.*` key can be overridden per-account (including `scorer`).  |
 
 ### CLI commands
 
 ```
-steamgifts-bot                  # smart default: run if config exists, else launch wizard
+steamgifts-bot                  # smart default: interactive menu if config exists, else wizard
 steamgifts-bot setup            # interactive first-run wizard (re-runnable)
 steamgifts-bot run              # run the bot (use --once for a single pass)
-steamgifts-bot run --tui        # live status dashboard
+steamgifts-bot run --tui        # live TUI status dashboard
 steamgifts-bot run --dry-run    # log candidate entries without submitting
-steamgifts-bot check            # validate config + cookies, show points, exit
+steamgifts-bot run --metrics-addr :9090   # expose Prometheus /metrics
+steamgifts-bot run --dashboard-addr :8080 # web UI dashboard
+steamgifts-bot check            # validate config + cookies, show points + level
 steamgifts-bot accounts add     # add an account with the cookie wizard
 steamgifts-bot accounts list    # list configured accounts (cookies redacted)
 steamgifts-bot accounts remove <name>
-steamgifts-bot service install  # register Scheduled Task / systemd user unit
+steamgifts-bot service install  # background service (systemd / Startup folder / LaunchAgent)
 steamgifts-bot service uninstall
 steamgifts-bot service status
+steamgifts-bot backup create    # zip config + state + logs
+steamgifts-bot backup restore <file.zip>
 steamgifts-bot version
 ```
 
