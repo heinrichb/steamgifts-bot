@@ -12,7 +12,13 @@ import (
 	"time"
 )
 
-const releaseURL = "https://api.github.com/repos/heinrichb/steamgifts-bot/releases/latest"
+// releaseURL is the GitHub API endpoint for the latest release.
+// Tests override this to point at an httptest server.
+var releaseURL = "https://api.github.com/repos/heinrichb/steamgifts-bot/releases/latest"
+
+// httpClient is the HTTP client used for update checks.
+// Tests override this to avoid real network calls.
+var httpClient = http.DefaultClient
 
 type release struct {
 	TagName string `json:"tag_name"`
@@ -36,7 +42,7 @@ func Check(ctx context.Context, logger *slog.Logger, currentVersion string) {
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return
 	}
