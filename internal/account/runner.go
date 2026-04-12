@@ -27,8 +27,9 @@ type Runner struct {
 	// submits an entry. The wizard, `check`, and `--dry-run` all use this.
 	DryRun bool
 
-	mu     sync.RWMutex
-	status Status
+	mu       sync.RWMutex
+	status   Status
+	lastSync time.Time // last successful Steam sync attempt
 }
 
 // Status is a snapshot of what an account's runner is doing right now.
@@ -117,6 +118,36 @@ func (r *Runner) recordRun(state sg.AccountState) {
 	r.mu.Unlock()
 }
 
+// shouldSyncSteam reports whether the per-account Steam sync interval has
+// elapsed since the last successful sync (or never synced).
+func (r *Runner) shouldSyncSteam() bool {
+	if !r.Settings.SteamSyncEnabledValue() {
+		return false
+	}
+	r.mu.RLock()
+	last := r.lastSync
+	r.mu.RUnlock()
+	if last.IsZero() {
+		return true
+	}
+	return time.Since(last) >= r.Settings.SteamSyncInterval()
+}
+
+// syncSteam triggers a Steamgifts→Steam sync. Refunds points for newly-
+// acquired games and filters owned games out of future listings. The site
+// has its own daily cooldown, but we also enforce a configurable floor.
+func (r *Runner) syncSteam(ctx context.Context, xsrf string) error {
+	res, err := sg.SyncAccount(ctx, r.Client, xsrf)
+	if err != nil {
+		return err
+	}
+	r.mu.Lock()
+	r.lastSync = time.Now()
+	r.mu.Unlock()
+	r.Logger.Info("synced account with steam", "msg", res.Msg)
+	return nil
+}
+
 func (r *Runner) recordEntry(g sg.Giveaway, ok bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -141,6 +172,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	}
 
 	enteredThisRun := 0
+	syncedThisCycle := false
 
 	for _, filter := range filters {
 		if maxEntries > 0 && enteredThisRun >= maxEntries {
@@ -160,6 +192,27 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("parse %s: %w", filter, err)
 		}
+
+		// Trigger a Steam sync at most once per cycle, on the first filter.
+		// We piggyback on the page we already fetched (which gave us the
+		// xsrf token), then re-fetch this filter so the rest of the cycle
+		// sees post-sync points and giveaway list.
+		if !syncedThisCycle && r.shouldSyncSteam() {
+			syncedThisCycle = true
+			if err := r.syncSteam(ctx, state.XSRFToken); err != nil {
+				r.Logger.Warn("steam sync failed (continuing scan)", "err", err)
+			} else {
+				body, err = r.Client.Get(ctx, path)
+				if err != nil {
+					return fmt.Errorf("post-sync refetch %s: %w", filter, err)
+				}
+				state, giveaways, err = sg.ParseListPage(body)
+				if err != nil {
+					return fmt.Errorf("post-sync parse %s: %w", filter, err)
+				}
+			}
+		}
+
 		r.recordRun(state)
 		r.Logger.Info("scanned filter",
 			"filter", filter,

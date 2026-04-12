@@ -31,6 +31,13 @@ defaults:
   # the traffic looks. You can copy yours from any site's network tab.
   # user_agent: "Mozilla/5.0 ..."
 
+  # Automatically trigger steamgifts' "Sync Account" once per interval.
+  # Refunds points for games you've acquired since the last sync and
+  # filters owned games out of future listings — pure win, no downside.
+  # The site enforces its own ~24h cooldown; this is a safety floor.
+  steam_sync_enabled: true
+  steam_sync_interval_hours: 24
+
 # Filter priority: each scan cycle walks this list in order and stops when
 # the account drops below `min_points` or hits `max_entries_per_run`.
 #
