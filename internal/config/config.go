@@ -47,6 +47,7 @@ type AccountSettings struct {
 	UserAgent              string   `yaml:"user_agent,omitempty"                mapstructure:"user_agent"`
 	Filters                []string `yaml:"filters,omitempty"                   mapstructure:"filters"`
 	MaxPages               *int     `yaml:"max_pages,omitempty"                 mapstructure:"max_pages"`
+	ProxyURL               string   `yaml:"proxy_url,omitempty"                 mapstructure:"proxy_url"`
 	SteamSyncEnabled       *bool    `yaml:"steam_sync_enabled,omitempty"        mapstructure:"steam_sync_enabled"`
 	SteamSyncIntervalHours *int     `yaml:"steam_sync_interval_hours,omitempty" mapstructure:"steam_sync_interval_hours"`
 }
@@ -118,6 +119,9 @@ func (c *Config) Resolved(idx int) AccountSettings {
 	}
 	if a.MaxPages != nil {
 		out.MaxPages = a.MaxPages
+	}
+	if a.ProxyURL != "" {
+		out.ProxyURL = a.ProxyURL
 	}
 	if a.SteamSyncEnabled != nil {
 		out.SteamSyncEnabled = a.SteamSyncEnabled

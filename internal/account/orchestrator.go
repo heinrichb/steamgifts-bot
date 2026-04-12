@@ -28,9 +28,12 @@ func Build(cfg *config.Config, logger *slog.Logger, store *state.Store, notif *n
 		acct := cfg.Accounts[i]
 		settings := cfg.Resolved(i)
 		log := logpkg.Account(logger, acct.Name)
-		c, err := client.New(acct.Cookie, settings.UserAgent,
-			client.WithLogger(log),
-		)
+		clientOpts := []client.Option{client.WithLogger(log)}
+		if settings.ProxyURL != "" {
+			clientOpts = append(clientOpts, client.WithProxy(settings.ProxyURL))
+			log.Info("using proxy", "proxy", settings.ProxyURL)
+		}
+		c, err := client.New(acct.Cookie, settings.UserAgent, clientOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("account %q: %w", acct.Name, err)
 		}

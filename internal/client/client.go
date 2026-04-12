@@ -55,6 +55,23 @@ func WithTimeout(d time.Duration) Option {
 	}
 }
 
+// WithProxy routes all requests through the given HTTP or SOCKS5 proxy.
+// The URL should be like "http://host:port" or "socks5://host:port".
+func WithProxy(proxyURL string) Option {
+	return func(c *Client) {
+		if proxyURL == "" {
+			return
+		}
+		u, err := url.Parse(proxyURL)
+		if err != nil {
+			return
+		}
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.Proxy = http.ProxyURL(u)
+		c.httpc.Transport = transport
+	}
+}
+
 // New constructs a Client seeded with the given PHPSESSID cookie.
 func New(cookie, userAgent string, opts ...Option) (*Client, error) {
 	if strings.TrimSpace(cookie) == "" {

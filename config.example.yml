@@ -75,6 +75,7 @@ accounts:
     # Per-account overrides (optional). Anything omitted falls back to defaults.
     # min_points: 100
     # filters: [wishlist, group]
+    # proxy_url: "socks5://127.0.0.1:1080"  # per-account HTTP or SOCKS5 proxy
 
   # Add more accounts by uncommenting:
   # - name: alt
