@@ -14,15 +14,10 @@ var (
 	getConsoleProcessList = kernel32.NewProc("GetConsoleProcessList")
 )
 
-// ensureConsole is a no-op for console-subsystem builds. Windows allocates
-// a console automatically: the parent's when launched from cmd/PowerShell,
-// or a fresh one when double-clicked from Explorer.
 func ensureConsole() {}
 
-// launchedFromExplorer returns true when this process is the only one on
-// the console — meaning Windows created a throwaway console for a
-// double-click launch. In that case the window would vanish instantly
-// when main() returns, so waitBeforeClose pauses for the user.
+// launchedFromExplorer reports whether this process is the sole occupant
+// of its console — true when double-clicked from Explorer.
 func launchedFromExplorer() bool {
 	var pids [4]uint32
 	count, _, _ := getConsoleProcessList.Call(
