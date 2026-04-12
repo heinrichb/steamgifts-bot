@@ -21,13 +21,14 @@ import (
 
 // Runner runs the bot loop for one account.
 type Runner struct {
-	Name     string
-	Settings config.AccountSettings
-	Client   *client.Client
-	Logger   *slog.Logger
-	State    *state.Store
-	Notifier *notify.Notifier
-	DryRun   bool
+	Name          string
+	Settings      config.AccountSettings
+	ScorerWeights scorer.Weights
+	Client        *client.Client
+	Logger        *slog.Logger
+	State         *state.Store
+	Notifier      *notify.Notifier
+	DryRun        bool
 
 	mu       sync.RWMutex
 	status   Status
@@ -272,6 +273,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	ranked := scorer.Rank(candidates, scorer.Context{
 		WishlistCodes: wishlistCodes,
 		AccountLevel:  accountLevel,
+		Weights:       r.ScorerWeights,
 	})
 	r.Logger.Info("ranked candidates",
 		"total", len(ranked),

@@ -26,12 +26,23 @@ import (
 // still have a stable import. New code should prefer client.DefaultUserAgent.
 const DefaultUserAgent = client.DefaultUserAgent
 
+// ScorerWeights controls the relative priority of each scoring component.
+// Zero values fall back to built-in defaults in the scorer package.
+type ScorerWeights struct {
+	Wishlist       *float64 `yaml:"wishlist,omitempty"        mapstructure:"wishlist"`
+	Sniper         *float64 `yaml:"sniper,omitempty"          mapstructure:"sniper"`
+	SniperHours    *float64 `yaml:"sniper_hours,omitempty"    mapstructure:"sniper_hours"`
+	Level          *float64 `yaml:"level,omitempty"           mapstructure:"level"`
+	CostEfficiency *float64 `yaml:"cost_efficiency,omitempty" mapstructure:"cost_efficiency"`
+}
+
 // Config is the root user-facing configuration object.
 type Config struct {
 	Defaults          AccountSettings `yaml:"defaults"              mapstructure:"defaults"`
 	Filters           []string        `yaml:"filters"               mapstructure:"filters"`
 	Accounts          []Account       `yaml:"accounts"              mapstructure:"accounts"`
 	DiscordWebhookURL string          `yaml:"discord_webhook_url"   mapstructure:"discord_webhook_url"`
+	Scorer            ScorerWeights   `yaml:"scorer"                mapstructure:"scorer"`
 }
 
 // AccountSettings holds the per-account knobs that may be set globally
