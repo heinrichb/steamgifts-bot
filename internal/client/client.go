@@ -4,6 +4,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -121,43 +122,99 @@ func (c *Client) PostForm(ctx context.Context, path string, form url.Values) ([]
 	return c.do(ctx, http.MethodPost, path, body, headers)
 }
 
-func (c *Client) do(ctx context.Context, method, path string, body io.Reader, headers map[string]string) ([]byte, error) {
-	if err := c.limiter.Wait(ctx); err != nil {
-		return nil, err
-	}
+const maxRetries = 3
 
+func (c *Client) do(ctx context.Context, method, path string, body io.Reader, headers map[string]string) ([]byte, error) {
 	target, err := c.resolve(path)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, method, target, body)
-	if err != nil {
-		return nil, fmt.Errorf("client: build request: %w", err)
-	}
-	req.Header.Set("User-Agent", c.userAgent)
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	req.Header.Set("Referer", c.baseURL+"/")
-	for k, v := range headers {
-		req.Header.Set(k, v)
+
+	// Buffer the body so we can replay it on retries.
+	var bodyBytes []byte
+	if body != nil {
+		bodyBytes, err = io.ReadAll(body)
+		if err != nil {
+			return nil, fmt.Errorf("client: read request body: %w", err)
+		}
 	}
 
-	c.log.Debug("http request", "method", method, "url", target)
-	resp, err := c.httpc.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("client: %s %s: %w", method, target, err)
-	}
-	defer func() { _ = resp.Body.Close() }()
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if err := c.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("client: read body: %w", err)
-	}
-	c.log.Debug("http response", "status", resp.StatusCode, "bytes", len(data))
+		var reqBody io.Reader
+		if bodyBytes != nil {
+			reqBody = bytes.NewReader(bodyBytes)
+		}
+		req, err := http.NewRequestWithContext(ctx, method, target, reqBody)
+		if err != nil {
+			return nil, fmt.Errorf("client: build request: %w", err)
+		}
+		req.Header.Set("User-Agent", c.userAgent)
+		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+		req.Header.Set("Referer", c.baseURL+"/")
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
 
-	if resp.StatusCode >= 400 {
-		return data, &HTTPError{Status: resp.StatusCode, URL: target, Body: Snippet(data)}
+		c.log.Debug("http request", "method", method, "url", target, "attempt", attempt+1)
+		resp, doErr := c.httpc.Do(req)
+		if doErr != nil {
+			lastErr = fmt.Errorf("client: %s %s: %w", method, target, doErr)
+			if attempt < maxRetries {
+				c.log.Warn("transient error, retrying", "err", doErr, "attempt", attempt+1)
+				if err := backoff(ctx, attempt); err != nil {
+					return nil, err
+				}
+				continue
+			}
+			return nil, lastErr
+		}
+
+		data, readErr := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if readErr != nil {
+			return nil, fmt.Errorf("client: read body: %w", readErr)
+		}
+		c.log.Debug("http response", "status", resp.StatusCode, "bytes", len(data))
+
+		if retryable(resp.StatusCode) && attempt < maxRetries {
+			c.log.Warn("retryable status, backing off",
+				"status", resp.StatusCode, "attempt", attempt+1)
+			if err := backoff(ctx, attempt); err != nil {
+				return nil, err
+			}
+			continue
+		}
+
+		if resp.StatusCode >= 400 {
+			return data, &HTTPError{Status: resp.StatusCode, URL: target, Body: Snippet(data)}
+		}
+		return data, nil
 	}
-	return data, nil
+	return nil, lastErr
+}
+
+func retryable(status int) bool {
+	return status == http.StatusBadGateway ||
+		status == http.StatusServiceUnavailable ||
+		status == http.StatusGatewayTimeout ||
+		status == http.StatusTooManyRequests
+}
+
+func backoff(ctx context.Context, attempt int) error {
+	d := time.Duration(1<<uint(attempt)) * 5 * time.Second // 5s, 10s, 20s
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
 }
 
 func (c *Client) resolve(path string) (string, error) {
