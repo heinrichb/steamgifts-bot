@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 const unitName = "steamgifts-bot.service"
@@ -89,10 +90,12 @@ func Status() (string, error) {
 	if _, err := os.Stat(path); err != nil {
 		return "not installed", nil
 	}
-	out, err := exec.Command("systemctl", "--user", "is-active", unitName).Output()
-	state := "unknown"
-	if err == nil {
-		state = string(out)
+	// systemctl is-active exits non-zero for inactive/failed units, but its
+	// stdout still carries the actual state — capture both.
+	out, _ := exec.Command("systemctl", "--user", "is-active", unitName).CombinedOutput()
+	state := strings.TrimSpace(string(out))
+	if state == "" {
+		state = "unknown"
 	}
 	return fmt.Sprintf("installed at %s — %s", path, state), nil
 }

@@ -62,6 +62,7 @@ func (r *Runner) Snapshot() Status {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	out := r.status
+	out.Name = r.Name
 	out.RecentEntries = append([]EnteredGiveaway(nil), r.status.RecentEntries...)
 	return out
 }
@@ -69,7 +70,6 @@ func (r *Runner) Snapshot() Status {
 // Run loops until ctx is cancelled. If once is true, it executes a single
 // pass and returns.
 func (r *Runner) Run(ctx context.Context, once bool) error {
-	r.setName()
 	for {
 		if err := r.runOnce(ctx); err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -90,12 +90,6 @@ func (r *Runner) Run(ctx context.Context, once bool) error {
 		case <-time.After(pause):
 		}
 	}
-}
-
-func (r *Runner) setName() {
-	r.mu.Lock()
-	r.status.Name = r.Name
-	r.mu.Unlock()
 }
 
 func (r *Runner) scheduleNext(pause time.Duration) {
@@ -181,7 +175,7 @@ func (r *Runner) recordEntry(g sg.Giveaway, ok bool) {
 }
 
 func (r *Runner) runOnce(ctx context.Context) error {
-	min := r.Settings.MinPointsValue()
+	minPts := r.Settings.MinPointsValue()
 	maxEntries := r.Settings.MaxEntriesValue()
 	allowPinned := r.Settings.EnterPinnedValue()
 	filters := r.Settings.Filters
@@ -244,12 +238,12 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			"giveaways", len(giveaways),
 		)
 
-		if page.Points <= min {
-			r.Logger.Info("points at or below min, skipping further filters", "points", page.Points, "min", min)
+		points := page.Points - dryRunSpend
+		if points <= minPts {
+			r.Logger.Info("points at or below min, skipping further filters", "points", points, "min", minPts)
 			return nil
 		}
 
-		points := page.Points - dryRunSpend
 		for _, g := range giveaways {
 			if maxEntries > 0 && enteredThisRun >= maxEntries {
 				return nil
@@ -259,7 +253,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 					"name", g.Name, "code", g.Code, "filter", filter)
 				continue
 			}
-			if !g.Joinable(points, min, allowPinned) {
+			if !g.Joinable(points, minPts, allowPinned) {
 				continue
 			}
 			if r.DryRun {
@@ -288,7 +282,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			}
 			r.Logger.Info("entered",
 				"name", g.Name, "code", g.Code, "cost", g.Cost, "points_left", points)
-			if points <= min {
+			if points <= minPts {
 				r.Logger.Info("points at min after entry, stopping cycle", "points", points)
 				return nil
 			}

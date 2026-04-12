@@ -121,11 +121,15 @@ func humanizeAgo(t time.Time) string {
 	return d.String() + " ago"
 }
 
+// truncate returns s limited to n runes (not bytes), with an ellipsis if
+// it had to cut. Rune-safe so multi-byte UTF-8 names render correctly in
+// the dashboard.
 func truncate(s string, n int) string {
-	if len(s) <= n {
+	r := []rune(s)
+	if len(r) <= n {
 		return s
 	}
-	return s[:n-1] + "…"
+	return string(r[:n-1]) + "…"
 }
 
 func orDash(s string) string {

@@ -23,6 +23,7 @@ profile.*
 # Editor / OS
 .vscode/
 .idea/
+.codex
 *.swp
 *.swo
 .DS_Store
