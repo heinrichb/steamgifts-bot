@@ -33,7 +33,7 @@ func FilterURL(name string) (string, error) {
 		return "/giveaways/search?type=new", nil
 	case "dlc":
 		return "/giveaways/search?dlc=true", nil
-	case "multicopy", "multi-copy", "copies":
+	case "multicopy":
 		return "/giveaways/search?copy_min=2", nil
 	case "all", "":
 		return "/giveaways/search", nil

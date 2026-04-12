@@ -110,54 +110,39 @@ func (r *Runner) recordError(err error) {
 	r.mu.Unlock()
 }
 
-func (r *Runner) recordRun(state sg.AccountState) {
+func (r *Runner) recordRun(page sg.AccountState) {
 	r.mu.Lock()
 	r.status.LastRun = time.Now()
 	r.status.LastError = ""
-	r.status.Username = state.Username
-	r.status.Points = state.Points
+	r.status.Username = page.Username
+	r.status.Points = page.Points
 	r.mu.Unlock()
 }
 
 // shouldSyncSteam reports whether the per-account Steam sync interval has
-// elapsed since the last successful sync. The last-sync timestamp is read
-// from the persistent state store (if attached) so restarts of the bot
-// don't burn through the daily cooldown — critical when iterating during
-// development or when a Docker container restarts.
+// elapsed since the last successful sync. The persistent store backs this
+// so restarting the bot doesn't burn the daily cooldown.
 func (r *Runner) shouldSyncSteam() bool {
 	if !r.Settings.SteamSyncEnabledValue() {
 		return false
 	}
-	last := r.lastSyncTime()
-	interval := r.Settings.SteamSyncInterval()
+	var last time.Time
+	if r.State != nil {
+		last = r.State.LastSync(r.Name)
+	}
 	if last.IsZero() {
-		r.Logger.Debug("steam sync: no prior sync recorded, will sync this cycle")
 		return true
 	}
+	interval := r.Settings.SteamSyncInterval()
 	elapsed := time.Since(last)
 	if elapsed < interval {
-		r.Logger.Debug("steam sync: skipping (cooldown)",
+		r.Logger.Debug("steam sync: cooldown",
 			"last_sync", last.Format(time.RFC3339),
-			"elapsed", elapsed.Round(time.Second),
-			"interval", interval,
 			"next_in", (interval - elapsed).Round(time.Second),
 		)
 		return false
 	}
-	r.Logger.Debug("steam sync: due",
-		"last_sync", last.Format(time.RFC3339),
-		"elapsed", elapsed.Round(time.Second),
-	)
 	return true
-}
-
-// lastSyncTime reads the last successful sync time from the state store,
-// or returns the zero time if no store is attached.
-func (r *Runner) lastSyncTime() time.Time {
-	if r.State == nil {
-		return time.Time{}
-	}
-	return r.State.LastSync(r.Name)
 }
 
 // syncSteam triggers a Steamgifts→Steam sync. Refunds points for newly-
@@ -206,19 +191,11 @@ func (r *Runner) runOnce(ctx context.Context) error {
 
 	enteredThisRun := 0
 	syncedThisCycle := false
-
-	// Track which giveaway codes we've already entered (or simulated entering
-	// in dry-run mode) during this cycle. The same game can appear under
-	// multiple filters — e.g. a wishlist game in a group, or a multicopy game
-	// on the front page — and without this dedupe we'd POST entry_insert
-	// twice. The site would reject the second one as 'already entered', but
-	// it still wastes an HTTP request and confuses the dry-run accounting.
+	// Per-cycle dedupe by giveaway code: the same listing can show up under
+	// multiple filters and we don't want to double-POST.
 	enteredThisCycle := make(map[string]bool)
-
-	// In dry-run mode, simulated point spend has to carry across filters so
-	// the points_after display reflects the real cumulative cost of the run.
-	// In real mode, the server is the source of truth — each filter re-fetch
-	// gives us authoritative points so this stays at zero.
+	// Carry simulated spend across filters in dry-run mode so points_after
+	// reflects cumulative cost. Stays zero in real mode (server is the truth).
 	dryRunSpend := 0
 
 	for _, filter := range filters {
@@ -235,45 +212,44 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("fetch %s: %w", filter, err)
 		}
-		state, giveaways, err := sg.ParseListPage(body)
+		page, giveaways, err := sg.ParseListPage(body)
 		if err != nil {
 			return fmt.Errorf("parse %s: %w", filter, err)
 		}
 
-		// Trigger a Steam sync at most once per cycle, on the first filter.
-		// We piggyback on the page we already fetched (which gave us the
-		// xsrf token), then re-fetch this filter so the rest of the cycle
-		// sees post-sync points and giveaway list.
+		// Sync once per cycle, piggybacking on the xsrf token from the
+		// first filter, then re-read the same filter so the loop sees
+		// post-sync points and giveaway list.
 		if !syncedThisCycle && r.shouldSyncSteam() {
 			syncedThisCycle = true
-			if err := r.syncSteam(ctx, state.XSRFToken); err != nil {
+			if err := r.syncSteam(ctx, page.XSRFToken); err != nil {
 				r.Logger.Warn("steam sync failed (continuing scan)", "err", err)
 			} else {
 				body, err = r.Client.Get(ctx, path)
 				if err != nil {
 					return fmt.Errorf("post-sync refetch %s: %w", filter, err)
 				}
-				state, giveaways, err = sg.ParseListPage(body)
+				page, giveaways, err = sg.ParseListPage(body)
 				if err != nil {
 					return fmt.Errorf("post-sync parse %s: %w", filter, err)
 				}
 			}
 		}
 
-		r.recordRun(state)
+		r.recordRun(page)
 		r.Logger.Info("scanned filter",
 			"filter", filter,
-			"points", state.Points,
-			"username", state.Username,
+			"points", page.Points,
+			"username", page.Username,
 			"giveaways", len(giveaways),
 		)
 
-		if state.Points <= min {
-			r.Logger.Info("points at or below min, skipping further filters", "points", state.Points, "min", min)
+		if page.Points <= min {
+			r.Logger.Info("points at or below min, skipping further filters", "points", page.Points, "min", min)
 			return nil
 		}
 
-		points := state.Points - dryRunSpend
+		points := page.Points - dryRunSpend
 		for _, g := range giveaways {
 			if maxEntries > 0 && enteredThisRun >= maxEntries {
 				return nil
@@ -296,7 +272,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 				enteredThisRun++
 				continue
 			}
-			res, err := sg.Enter(ctx, r.Client, g.Code, state.XSRFToken)
+			res, err := sg.Enter(ctx, r.Client, g.Code, page.XSRFToken)
 			if err != nil {
 				r.recordEntry(g, false)
 				r.Logger.Warn("entry failed", "name", g.Name, "code", g.Code, "err", err)
@@ -307,9 +283,6 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			enteredThisRun++
 			if res.Points > 0 {
 				points = res.Points
-				r.mu.Lock()
-				r.status.Points = points
-				r.mu.Unlock()
 			} else {
 				points -= g.Cost
 			}

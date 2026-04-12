@@ -10,22 +10,10 @@ import (
 )
 
 // SyncResult is the JSON shape steamgifts returns from /ajax.php?do=sync.
-//
-// Successful response example (captured from a live request):
-//
-//	{
-//	  "sync_privacy_requirements": false,
-//	  "type": "success",
-//	  "msg": "Success. Synced with Steam."
-//	}
-//
-// On cooldown the site returns a non-"success" type with an explanatory msg —
-// callers should treat anything other than "success" as a soft failure and
-// back off until the next interval.
+// On cooldown the site returns a non-"success" Type with an explanatory Msg.
 type SyncResult struct {
-	Type                    string `json:"type"`
-	Msg                     string `json:"msg,omitempty"`
-	SyncPrivacyRequirements bool   `json:"sync_privacy_requirements,omitempty"`
+	Type string `json:"type"`
+	Msg  string `json:"msg,omitempty"`
 }
 
 // SyncAccount POSTs the "sync" action to /ajax.php, asking steamgifts to

@@ -22,18 +22,18 @@ import (
 	"time"
 )
 
-// File is the on-disk JSON shape. Adding fields here is backwards-compatible:
+// file is the on-disk JSON shape. Adding fields here is backwards-compatible:
 // older state files just unmarshal with zero values for the new fields.
-type File struct {
+type file struct {
 	Version  int                  `json:"version"`
 	LastSync map[string]time.Time `json:"last_sync,omitempty"`
 }
 
-// Store is an in-memory cache of File backed by atomic writes to a path on disk.
+// Store is an in-memory cache backed by atomic writes to a path on disk.
 type Store struct {
 	mu   sync.RWMutex
 	path string
-	data File
+	data file
 }
 
 // DefaultPathFor returns the default state-file path beside the given config file.
@@ -50,7 +50,7 @@ func DefaultPathFor(configPath string) string {
 func Load(path string) (*Store, error) {
 	s := &Store{
 		path: path,
-		data: File{Version: 1, LastSync: map[string]time.Time{}},
+		data: file{Version: 1, LastSync: map[string]time.Time{}},
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -97,7 +97,7 @@ func (s *Store) SetLastSync(account string, t time.Time) error {
 		s.data.LastSync = map[string]time.Time{}
 	}
 	s.data.LastSync[account] = t
-	snapshot := File{
+	snapshot := file{
 		Version:  s.data.Version,
 		LastSync: make(map[string]time.Time, len(s.data.LastSync)),
 	}
@@ -111,7 +111,7 @@ func (s *Store) SetLastSync(account string, t time.Time) error {
 // save writes the file atomically: marshal → write to a temp sibling → rename.
 // The rename is atomic on POSIX and on NTFS for files in the same directory,
 // so a crash mid-write can't produce a half-written state.json.
-func (s *Store) save(data File) error {
+func (s *Store) save(data file) error {
 	if s.path == "" {
 		return errors.New("state: no path configured")
 	}
@@ -136,8 +136,6 @@ func (s *Store) save(data File) error {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("state: close: %w", err)
 	}
-	// 0600 — state file may eventually contain win history or other data
-	// users would prefer not to be world-readable.
 	if err := os.Chmod(tmpName, 0o600); err != nil {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("state: chmod: %w", err)
