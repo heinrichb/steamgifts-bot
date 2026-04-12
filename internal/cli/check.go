@@ -8,12 +8,19 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/heinrichb/steamgifts-bot/internal/client"
 	"github.com/heinrichb/steamgifts-bot/internal/config"
 	logpkg "github.com/heinrichb/steamgifts-bot/internal/log"
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
+)
+
+var (
+	checkOK    = lipgloss.NewStyle().Foreground(lipgloss.Color("82")).Bold(true)
+	checkFail  = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+	checkLabel = lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Bold(true)
 )
 
 func newCheckCmd() *cobra.Command {
@@ -54,7 +61,11 @@ func runCheck(cmd *cobra.Command, _ []string) error {
 	defer cancel()
 
 	tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "ACCOUNT\tUSERNAME\tPOINTS\tSTATUS")
+	fmt.Fprintln(tw,
+		checkLabel.Render("ACCOUNT")+"\t"+
+			checkLabel.Render("USERNAME")+"\t"+
+			checkLabel.Render("POINTS")+"\t"+
+			checkLabel.Render("STATUS"))
 
 	anyFailed := false
 	for i, acct := range cfg.Accounts {
@@ -63,9 +74,11 @@ func runCheck(cmd *cobra.Command, _ []string) error {
 		switch {
 		case err != nil:
 			anyFailed = true
-			fmt.Fprintf(tw, "%s\t-\t-\tFAIL: %s\n", acct.Name, err)
+			fmt.Fprintf(tw, "%s\t-\t-\t%s\n",
+				acct.Name, checkFail.Render("FAIL: "+err.Error()))
 		default:
-			fmt.Fprintf(tw, "%s\t%s\t%d\tOK\n", acct.Name, st.Username, st.Points)
+			fmt.Fprintf(tw, "%s\t%s\t%d\t%s\n",
+				acct.Name, st.Username, st.Points, checkOK.Render("OK"))
 		}
 	}
 	_ = tw.Flush()
