@@ -70,9 +70,15 @@ filters:
 #   level: 3.0            # boost for level-locked giveaways (fewer eligible users)
 #   cost_efficiency: 1.0  # mild preference for cheaper entries to spread points
 
-# Discord webhook URL for win notifications. Leave empty to disable.
+# --- Notifications (optional) ---
+# Discord webhook URL for win notifications.
 # Create one at: Discord Server Settings → Integrations → Webhooks → New
 # discord_webhook_url: "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+
+# Telegram bot notifications. Get a token from @BotFather, then send
+# a message to your bot and find your chat_id via the getUpdates API.
+# telegram_bot_token: "123456:ABC-DEF..."
+# telegram_chat_id: "987654321"
 
 # One or more accounts. Each account runs independently in its own scheduler.
 accounts:

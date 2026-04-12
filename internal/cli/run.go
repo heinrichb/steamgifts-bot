@@ -76,7 +76,7 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 		if err != nil {
 			return fmt.Errorf("load state: %w", err)
 		}
-		notif := notify.New(cfg.DiscordWebhookURL)
+		notif := notify.New(cfg.DiscordWebhookURL, cfg.TelegramBotToken, cfg.TelegramChatID)
 		logger.Info("loaded config",
 			"path", path,
 			"state", store.Path(),

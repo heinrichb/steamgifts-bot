@@ -42,6 +42,8 @@ type Config struct {
 	Filters           []string        `yaml:"filters"               mapstructure:"filters"`
 	Accounts          []Account       `yaml:"accounts"              mapstructure:"accounts"`
 	DiscordWebhookURL string          `yaml:"discord_webhook_url"   mapstructure:"discord_webhook_url"`
+	TelegramBotToken  string          `yaml:"telegram_bot_token"    mapstructure:"telegram_bot_token"`
+	TelegramChatID    string          `yaml:"telegram_chat_id"      mapstructure:"telegram_chat_id"`
 	Scorer            ScorerWeights   `yaml:"scorer"                mapstructure:"scorer"`
 }
 
