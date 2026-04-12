@@ -72,7 +72,6 @@ type Candidate struct {
 
 // Rank scores and sorts a slice of giveaways, highest score first.
 func Rank(giveaways []sg.Giveaway, sctx Context) []Candidate {
-	sctx.Weights = sctx.Weights.WithDefaults()
 	now := time.Now()
 	candidates := make([]Candidate, len(giveaways))
 	for i, g := range giveaways {

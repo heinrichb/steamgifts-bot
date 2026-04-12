@@ -4,7 +4,8 @@
 // Each platform has its own implementation behind build-tag-gated files:
 //
 //   - service_linux.go   — systemd user unit
-//   - service_windows.go — Scheduled Task via schtasks.exe
+//   - service_windows.go — Startup folder .bat
+//   - service_darwin.go  — macOS LaunchAgent plist
 //   - service_other.go   — graceful "not supported on this OS" stubs
 package service
 
@@ -17,7 +18,7 @@ func Platform() string { return runtime.GOOS }
 // Supported reports whether `Install` does anything meaningful here.
 func Supported() bool {
 	switch runtime.GOOS {
-	case "linux", "windows":
+	case "linux", "windows", "darwin":
 		return true
 	default:
 		return false

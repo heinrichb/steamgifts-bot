@@ -53,7 +53,16 @@ func Build(cfg *config.Config, logger *slog.Logger, store *state.Store, notif *n
 }
 
 func scorerWeightsFromConfig(sw config.ScorerWeights) scorer.Weights {
-	var w scorer.Weights
+	// Start with defaults, then apply explicit overrides. This lets users
+	// set a weight to 0 to disable a component — without this, zero would
+	// be indistinguishable from "not set."
+	w := scorer.Weights{
+		Wishlist:    scorer.DefaultWishlistWeight,
+		Sniper:      scorer.DefaultSniperWeight,
+		SniperHours: scorer.DefaultSniperHours,
+		Level:       scorer.DefaultLevelWeight,
+		Cost:        scorer.DefaultCostWeight,
+	}
 	if sw.Wishlist != nil {
 		w.Wishlist = *sw.Wishlist
 	}

@@ -16,7 +16,7 @@ func newServiceCmd() *cobra.Command {
 
   * Linux:   ~/.config/systemd/user/steamgifts-bot.service
   * Windows: a .bat in your Startup folder (starts minimized on login)
-  * macOS:   not yet implemented (see TODO.md)
+  * macOS:   ~/Library/LaunchAgents/ plist (starts on login)
 
 All install paths print exactly what they did and how to undo it. No
 admin elevation is required — these are user-scope installs only.`,
