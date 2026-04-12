@@ -133,7 +133,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 
 func welcome(_ context.Context) error {
 	ready := true
-	return huh.NewConfirm().
+	err := huh.NewConfirm().
 		Title("Welcome to steamgifts-bot 👋").
 		Description(strings.Join([]string{
 			"This wizard will set up the bot in a few quick steps:",
@@ -149,6 +149,13 @@ func welcome(_ context.Context) error {
 		Value(&ready).
 		WithTheme(huh.ThemeCharm()).
 		Run()
+	if err != nil {
+		return err
+	}
+	if !ready {
+		return errors.New("setup cancelled")
+	}
+	return nil
 }
 
 func globalSettings(cfg *config.Config) error {

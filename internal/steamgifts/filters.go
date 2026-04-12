@@ -17,6 +17,8 @@ const (
 	FilterAll         = "all"
 )
 
+const searchBase = "/giveaways/search"
+
 // ValidFilterNames returns the canonical set of filter identifiers, in a
 // stable order suitable for error messages and documentation.
 func ValidFilterNames() []string {
@@ -42,19 +44,19 @@ func IsValidFilter(name string) bool {
 func FilterURL(name string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case FilterWishlist:
-		return "/giveaways/search?type=wishlist", nil
+		return searchBase + "?type=wishlist", nil
 	case FilterGroup:
-		return "/giveaways/search?type=group", nil
+		return searchBase + "?type=group", nil
 	case FilterRecommended:
-		return "/giveaways/search?type=recommended", nil
+		return searchBase + "?type=recommended", nil
 	case FilterNew:
-		return "/giveaways/search?type=new", nil
+		return searchBase + "?type=new", nil
 	case FilterDLC:
-		return "/giveaways/search?dlc=true", nil
+		return searchBase + "?dlc=true", nil
 	case FilterMultiCopy:
-		return "/giveaways/search?copy_min=2", nil
+		return searchBase + "?copy_min=2", nil
 	case FilterAll, "":
-		return "/giveaways/search", nil
+		return searchBase, nil
 	default:
 		return "", fmt.Errorf("unknown filter %q", name)
 	}

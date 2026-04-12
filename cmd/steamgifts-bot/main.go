@@ -20,11 +20,12 @@ func main() {
 
 	code := 0
 	if err := cli.NewRootCmd(version, commit, date).Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+		if msg := err.Error(); msg != "" {
+			fmt.Fprintln(os.Stderr, "error:", msg)
+		}
 		code = 1
 	}
 
-	// Must run BEFORE os.Exit — defer doesn't fire after os.Exit.
 	waitBeforeClose()
 
 	if code != 0 {
