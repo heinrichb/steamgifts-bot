@@ -6,12 +6,13 @@
 //   - Sniper boost: giveaways closing soon with few entries per copy
 //     have the best win probability — score increases as deadline
 //     approaches and entry count stays low.
+//   - Wishlist boost: games from the user's wishlist filter score higher
+//     so the bot enters games you actually want before random titles.
 //   - Cost efficiency: mild preference for cheaper giveaways so the bot
 //     spreads points across more entries rather than blowing them on
 //     one expensive title.
 //
-// Future components (see TODO.md): wishlist boost, level-locked boost,
-// popularity/quality boost.
+// Future components (see TODO.md): level-locked boost, popularity/quality.
 package scorer
 
 import (
@@ -53,7 +54,7 @@ func Rank(giveaways []sg.Giveaway, sctx Context) []Candidate {
 			Score:    score(g, sctx, now),
 		}
 	}
-	sort.Slice(candidates, func(i, j int) bool {
+	sort.SliceStable(candidates, func(i, j int) bool {
 		return candidates[i].Score > candidates[j].Score
 	})
 	return candidates
