@@ -60,6 +60,7 @@ type AccountSettings struct {
 	UserAgent              string         `yaml:"user_agent,omitempty"                mapstructure:"user_agent"`
 	Filters                []string       `yaml:"filters,omitempty"                   mapstructure:"filters"`
 	MaxPages               *int           `yaml:"max_pages,omitempty"                 mapstructure:"max_pages"`
+	MaxEntriesPerApp       *int           `yaml:"max_entries_per_app,omitempty"       mapstructure:"max_entries_per_app"`
 	ProxyURL               string         `yaml:"proxy_url,omitempty"                 mapstructure:"proxy_url"`
 	SteamSyncEnabled       *bool          `yaml:"steam_sync_enabled,omitempty"        mapstructure:"steam_sync_enabled"`
 	SteamSyncIntervalHours *int           `yaml:"steam_sync_interval_hours,omitempty" mapstructure:"steam_sync_interval_hours"`
@@ -134,6 +135,9 @@ func (c *Config) Resolved(idx int) AccountSettings {
 	if a.MaxPages != nil {
 		out.MaxPages = a.MaxPages
 	}
+	if a.MaxEntriesPerApp != nil {
+		out.MaxEntriesPerApp = a.MaxEntriesPerApp
+	}
 	if a.ProxyURL != "" {
 		out.ProxyURL = a.ProxyURL
 	}
@@ -152,6 +156,14 @@ func (s AccountSettings) MaxPagesValue() int {
 		return 1
 	}
 	return *s.MaxPages
+}
+
+// MaxEntriesPerAppValue returns the per-game entry cap (0 = unlimited).
+func (s AccountSettings) MaxEntriesPerAppValue() int {
+	if s.MaxEntriesPerApp == nil {
+		return 0
+	}
+	return *s.MaxEntriesPerApp
 }
 
 // SteamSyncEnabledValue returns whether automatic Steam sync is enabled.
