@@ -5,7 +5,7 @@ A living list of things that would make the bot better. Not promises — just th
 ## Completed
 
 - [x] **Smart entry scorer** — scan→rank→enter architecture with sniper boost (+10), wishlist boost (+5), level-locked boost (+3), and cost efficiency
-- [x] **Pagination** — `max_pages` config knob to fetch multiple listing pages per filter
+- [x] **Pagination** — scans all listing pages per filter until empty (safety cap: 100)
 - [x] **Steam account sync** — auto-syncs once per 24h, refunds points for owned games
 - [x] **Discord webhook notifications** — rich embed on wins via `/giveaways/won` polling
 - [x] **Cloudflare challenge detection** — clear error instead of confusing parse failures
@@ -25,7 +25,7 @@ A living list of things that would make the bot better. Not promises — just th
 ## UX
 
 - [ ] **Auto cookie capture via local proxy** — a simple paste form is no better than the terminal; this needs to proxy the steamgifts login flow and intercept the Set-Cookie header automatically. Significantly more complex (HTTPS, redirect chain, Steam OpenID) but would be the real UX breakthrough.
-- [x] **GUI subsystem Windows build** — `-H windowsgui` with AttachConsole/AllocConsole, .bat removed
+- [x] **Windows double-click support** — console subsystem build with cobra mousetrap disabled
 - [ ] **Code-signed Windows builds** (Authenticode) so SmartScreen stops warning
 - [x] **Auto-update check** on startup via GitHub Releases API (log-only, never downloads)
 

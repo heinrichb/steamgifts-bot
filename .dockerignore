@@ -6,6 +6,7 @@ dist
 bin
 *.md
 !README.md
+config.yml
 config.yaml
 config.local.*
 testdata

@@ -22,11 +22,6 @@ defaults:
   # Hard cap on entries per scan cycle (safety net).
   max_entries_per_run: 25
 
-  # How many listing pages to fetch per filter. Steamgifts shows ~50
-  # giveaways per page. Higher = more candidates but longer cycle time
-  # (each page adds a 3-8s rate-limit delay).
-  max_pages: 3
-
   # Max entries per game across different giveaway listings.
   # 0 = unlimited (default). Entering all listings of the same game is
   # economically optimal (steamgifts refunds on win), but some users

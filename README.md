@@ -100,24 +100,24 @@ Every key in `config.example.yml` can also be set via environment variable. Prec
 2. `config.yml`
 3. Built-in defaults
 
-| Key                            | Default                  | Description                                                               |
-| ------------------------------ | ------------------------ | ------------------------------------------------------------------------- |
-| `defaults.min_points`          | `50`                     | Don't enter if it would drop you below this.                              |
-| `defaults.pause_minutes`       | `15`                     | Sleep between scan cycles.                                                |
-| `defaults.enter_pinned`        | `false`                  | Include pinned/featured giveaways.                                        |
-| `defaults.max_entries_per_run` | `25`                     | Safety cap on entries per cycle.                                          |
-| `defaults.max_pages`           | `3`                      | Listing pages per filter (more = wider candidate pool).                   |
-| `defaults.max_entries_per_app` | `0`                      | Per-game entry cap (0 = unlimited).                                       |
-| `defaults.proxy_url`           | —                        | HTTP/SOCKS5 proxy (e.g. `socks5://host:1080`).                            |
-| `defaults.steam_sync_enabled`  | `true`                   | Auto-sync account with Steam once per 24h.                                |
-| `filters`                      | `[wishlist, group, ...]` | Which pages to scan. Also accepts raw URLs (`/giveaways/search?...`).     |
-| `scorer.*`                     | See config.example.yml   | Scoring weights (wishlist, sniper, level, cost_efficiency, sniper_hours). |
-| `discord_webhook_url`          | —                        | Discord webhook for win notifications.                                    |
-| `telegram_bot_token`           | —                        | Telegram bot token for win notifications.                                 |
-| `telegram_chat_id`             | —                        | Telegram chat ID for win notifications.                                   |
-| `accounts[].name`              | —                        | Friendly label.                                                           |
-| `accounts[].cookie`            | —                        | PHPSESSID cookie value.                                                   |
-| `accounts[].*`                 | —                        | Any `defaults.*` key can be overridden per-account (including `scorer`).  |
+| Key                                  | Default                  | Description                                                               |
+| ------------------------------------ | ------------------------ | ------------------------------------------------------------------------- |
+| `defaults.min_points`                | `50`                     | Don't enter if it would drop you below this.                              |
+| `defaults.pause_minutes`             | `15`                     | Sleep between scan cycles.                                                |
+| `defaults.enter_pinned`              | `false`                  | Include pinned/featured giveaways.                                        |
+| `defaults.max_entries_per_run`       | `25`                     | Safety cap on entries per cycle.                                          |
+| `defaults.max_entries_per_app`       | `0`                      | Per-game entry cap (0 = unlimited).                                       |
+| `defaults.proxy_url`                 | —                        | HTTP/SOCKS5 proxy (e.g. `socks5://host:1080`).                            |
+| `defaults.steam_sync_enabled`        | `true`                   | Auto-sync account with Steam on a configurable interval.                  |
+| `defaults.steam_sync_interval_hours` | `24`                     | Minimum hours between Steam sync attempts.                                |
+| `filters`                            | `[wishlist, group, ...]` | Which pages to scan. Also accepts raw URLs (`/giveaways/search?...`).     |
+| `scorer.*`                           | See config.example.yml   | Scoring weights (wishlist, sniper, level, cost_efficiency, sniper_hours). |
+| `discord_webhook_url`                | —                        | Discord webhook for win notifications.                                    |
+| `telegram_bot_token`                 | —                        | Telegram bot token for win notifications.                                 |
+| `telegram_chat_id`                   | —                        | Telegram chat ID for win notifications.                                   |
+| `accounts[].name`                    | —                        | Friendly label.                                                           |
+| `accounts[].cookie`                  | —                        | PHPSESSID cookie value.                                                   |
+| `accounts[].*`                       | —                        | Any `defaults.*` key can be overridden per-account (including `scorer`).  |
 
 ### CLI commands
 
