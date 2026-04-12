@@ -33,7 +33,7 @@ require (
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/heinrichb/go_coverage_formatter v0.0.0-00010101000000-000000000000 // indirect
+	github.com/heinrichb/go_coverage_formatter v0.0.0-20260412150722-6b0ae0fafa19 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
@@ -63,5 +63,3 @@ require (
 )
 
 tool github.com/heinrichb/go_coverage_formatter/cmd/coverage-formatter
-
-replace github.com/heinrichb/go_coverage_formatter => /home/brennen/Development/github.com/go_coverage_formatter
