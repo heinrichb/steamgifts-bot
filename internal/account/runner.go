@@ -207,6 +207,20 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	enteredThisRun := 0
 	syncedThisCycle := false
 
+	// Track which giveaway codes we've already entered (or simulated entering
+	// in dry-run mode) during this cycle. The same game can appear under
+	// multiple filters — e.g. a wishlist game in a group, or a multicopy game
+	// on the front page — and without this dedupe we'd POST entry_insert
+	// twice. The site would reject the second one as 'already entered', but
+	// it still wastes an HTTP request and confuses the dry-run accounting.
+	enteredThisCycle := make(map[string]bool)
+
+	// In dry-run mode, simulated point spend has to carry across filters so
+	// the points_after display reflects the real cumulative cost of the run.
+	// In real mode, the server is the source of truth — each filter re-fetch
+	// gives us authoritative points so this stays at zero.
+	dryRunSpend := 0
+
 	for _, filter := range filters {
 		if maxEntries > 0 && enteredThisRun >= maxEntries {
 			r.Logger.Debug("max entries per run reached, stopping cycle", "max", maxEntries)
@@ -259,10 +273,15 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			return nil
 		}
 
-		points := state.Points
+		points := state.Points - dryRunSpend
 		for _, g := range giveaways {
 			if maxEntries > 0 && enteredThisRun >= maxEntries {
 				return nil
+			}
+			if enteredThisCycle[g.Code] {
+				r.Logger.Debug("skipping duplicate across filters",
+					"name", g.Name, "code", g.Code, "filter", filter)
+				continue
 			}
 			if !g.Joinable(points, min, allowPinned) {
 				continue
@@ -270,8 +289,10 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			if r.DryRun {
 				r.Logger.Info("dry-run: would enter",
 					"name", g.Name, "code", g.Code, "cost", g.Cost, "points_after", points-g.Cost)
+				enteredThisCycle[g.Code] = true
 				r.recordEntry(g, true)
 				points -= g.Cost
+				dryRunSpend += g.Cost
 				enteredThisRun++
 				continue
 			}
@@ -281,6 +302,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 				r.Logger.Warn("entry failed", "name", g.Name, "code", g.Code, "err", err)
 				continue
 			}
+			enteredThisCycle[g.Code] = true
 			r.recordEntry(g, true)
 			enteredThisRun++
 			if res.Points > 0 {

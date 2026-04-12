@@ -77,6 +77,7 @@ Components to implement, in priority order:
   - SteamSpy (free, rate-limited) for owner counts
   - Local cache (SQLite) keyed by Steam appid so we don't refetch every cycle
 - [ ] **Cost efficiency** — small tiebreaker preferring cheaper games when other scores are equal, so the bot doesn't blow all its points on one expensive entry.
+- [ ] **Per-Steam-app entry cap** — when the same game is offered as N separate giveaways (very common for popular titles and DLC), entering all of them is wasteful since you can only win one copy. The scorer should group candidates by Steam appid and apply a per-app cap (default 1, configurable). This subsumes name-based dedupe and is more correct because it handles localization and re-listings. Cross-filter code dedupe (already implemented) handles the duplicate-across-pages case; this handles the duplicate-across-listings case.
 - [ ] **Per-account weight overrides** — one user might run a wishlist-only sniper alt and a wide-net main on the same machine.
 
 Prerequisite features (each useful on their own):
