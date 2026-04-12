@@ -47,7 +47,7 @@ archives:
         dst: README-FIRST.txt
         info:
           mode: 0644
-      - src: dist/steamgifts-bot.bat
+      - src: docs/steamgifts-bot.bat
         dst: steamgifts-bot.bat
         info:
           mode: 0644

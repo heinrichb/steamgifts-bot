@@ -94,12 +94,11 @@ Paste it into `config.yml` (`accounts[0].cookie`) or the wizard.
 
 ## Configuration reference
 
-Every key in `config.example.yml` can be set three ways. Precedence (highest first):
+Every key in `config.example.yml` can also be set via environment variable. Precedence (highest first):
 
-1. CLI flag — `--min-points 100`
-2. Environment variable — `STEAMGIFTS_DEFAULTS_MIN_POINTS=100`
-3. `config.yml`
-4. Built-in defaults
+1. Environment variable — `STEAMGIFTS_DEFAULTS_MIN_POINTS=100`
+2. `config.yml`
+3. Built-in defaults
 
 | Key                            | Default                                    | Description                                         |
 | ------------------------------ | ------------------------------------------ | --------------------------------------------------- |
@@ -107,7 +106,7 @@ Every key in `config.example.yml` can be set three ways. Precedence (highest fir
 | `defaults.pause_minutes`       | `15`                                       | Sleep between scan cycles.                          |
 | `defaults.enter_pinned`        | `false`                                    | Include pinned/featured giveaways.                  |
 | `defaults.max_entries_per_run` | `25`                                       | Safety cap.                                         |
-| `defaults.user_agent`          | `steamgifts-bot/0.1`                       | HTTP User-Agent.                                    |
+| `defaults.user_agent`          | Current Chrome UA                          | HTTP User-Agent (mimics a real browser by default). |
 | `filters`                      | `[wishlist, group, recommended, new, all]` | Order to scan. Stops when points hit `min_points`.  |
 | `accounts[].name`              | —                                          | Friendly label.                                     |
 | `accounts[].cookie`            | —                                          | PHPSESSID cookie value.                             |

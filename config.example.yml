@@ -1,11 +1,9 @@
 # steamgifts-bot — example configuration
 #
 # Copy this file to `config.yml` (or pass --config <path>) and edit.
-# Every value here can also be set via:
-#   * an environment variable: STEAMGIFTS_<UPPER_SNAKE_KEY>
-#       e.g. STEAMGIFTS_DEFAULTS_MIN_POINTS=100
-#   * a CLI flag:               --min-points 100
-# Precedence: CLI flag > env var > config file > built-in default.
+# Every value here can also be set via an environment variable:
+#   STEAMGIFTS_<UPPER_SNAKE_KEY>  e.g. STEAMGIFTS_DEFAULTS_MIN_POINTS=100
+# Precedence: env var > config file > built-in default.
 #
 # SECURITY: this file contains your steamgifts.com PHPSESSID cookie, which
 # is equivalent to your password. Keep it private. Do not commit it.
