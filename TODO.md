@@ -32,7 +32,7 @@ A living list of things that would make the bot better. Not promises — just th
 ## Scorer enhancements
 
 - [ ] **Popularity / quality boost** — score AAA/highly-rated games higher via Steam Web API + SQLite cache
-- [ ] **Optional per-Steam-app entry cap** _(default: off)_ — limit entries per game for users who want to spread points wider. Default is uncapped (steamgifts auto-refunds on win)
+- [x] **Per-app entry cap** _(default: off)_ — `max_entries_per_app` limits entries per game name
 
 > **Note on duplicate games**: by default the bot enters every unique giveaway code, including multiple for the same game. Steamgifts auto-refunds losing entries on win, so this is economically correct.
 

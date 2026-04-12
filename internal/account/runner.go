@@ -293,10 +293,15 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	// --- Phase 3: enter in score order ---
 	points := latestPoints
 	entered := 0
+	maxPerApp := r.Settings.MaxEntriesPerAppValue()
+	appEntries := make(map[string]int) // track entries per game name
 	for _, c := range ranked {
 		if maxEntries > 0 && entered >= maxEntries {
 			r.Logger.Debug("max entries per run reached", "max", maxEntries)
 			break
+		}
+		if maxPerApp > 0 && appEntries[c.Name] >= maxPerApp {
+			continue
 		}
 		if points-c.Cost < minPts {
 			continue
@@ -308,6 +313,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			r.recordEntry(c.Giveaway, true)
 			points -= c.Cost
 			entered++
+			appEntries[c.Name]++
 			continue
 		}
 		res, err := sg.Enter(ctx, r.Client, c.Code, xsrf)
@@ -318,6 +324,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		}
 		r.recordEntry(c.Giveaway, true)
 		entered++
+		appEntries[c.Name]++
 		if res.PointsValue() > 0 {
 			points = res.PointsValue()
 		} else {
