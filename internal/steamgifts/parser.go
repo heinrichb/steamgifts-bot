@@ -20,6 +20,11 @@ func ParseListPage(html []byte) (AccountState, []Giveaway, error) {
 			"parse: received a Cloudflare challenge page instead of real content — " +
 				"the cookie may have expired or the site is temporarily blocking requests")
 	}
+	if isCaptchaPage(html) {
+		return AccountState{}, nil, errors.New(
+			"parse: page contains a CAPTCHA challenge — the account may be flagged. " +
+				"Solve the captcha manually in a browser, then restart the bot")
+	}
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
 	if err != nil {
@@ -189,6 +194,14 @@ func parseGiveawayRow(s *goquery.Selection) (Giveaway, bool) {
 func isCloudflareChallenge(html []byte) bool {
 	return bytes.Contains(html, []byte("Just a moment...")) &&
 		bytes.Contains(html, []byte("cf-browser-verification"))
+}
+
+// isCaptchaPage detects reCAPTCHA or hCaptcha challenge pages.
+func isCaptchaPage(html []byte) bool {
+	return bytes.Contains(html, []byte("g-recaptcha")) ||
+		bytes.Contains(html, []byte("h-captcha")) ||
+		bytes.Contains(html, []byte("recaptcha/api")) ||
+		bytes.Contains(html, []byte("hcaptcha.com"))
 }
 
 func atoiSafe(s string) int {
