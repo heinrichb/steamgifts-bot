@@ -15,6 +15,12 @@ import (
 // ParseListPage extracts the signed-in account state and the list of
 // giveaways from a steamgifts.com listing page (e.g. /, /?type=wishlist).
 func ParseListPage(html []byte) (AccountState, []Giveaway, error) {
+	if isCloudflareChallenge(html) {
+		return AccountState{}, nil, errors.New(
+			"parse: received a Cloudflare challenge page instead of real content — " +
+				"the cookie may have expired or the site is temporarily blocking requests")
+	}
+
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
 	if err != nil {
 		return AccountState{}, nil, fmt.Errorf("parse: %w", err)
@@ -167,6 +173,15 @@ func parseGiveawayRow(s *goquery.Selection) (Giveaway, bool) {
 	}
 
 	return g, true
+}
+
+// isCloudflareChallenge detects Cloudflare's "Just a moment..." interstitial.
+// When steamgifts is under heavy load or the bot's IP is flagged, Cloudflare
+// serves a JS challenge page instead of real content. The page has a
+// distinctive title and body structure.
+func isCloudflareChallenge(html []byte) bool {
+	return bytes.Contains(html, []byte("Just a moment...")) &&
+		bytes.Contains(html, []byte("cf-browser-verification"))
 }
 
 func atoiSafe(s string) int {
