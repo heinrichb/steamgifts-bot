@@ -26,6 +26,13 @@ builds:
     goarch:
       - amd64
       - arm64
+    overrides:
+      - goos: windows
+        ldflags:
+          - -s -w -H windowsgui
+          - -X main.version={{ .Version }}
+          - -X main.commit={{ .ShortCommit }}
+          - -X main.date={{ .Date }}
 
 archives:
   - id: default
@@ -45,10 +52,6 @@ archives:
       - config.example.yml
       - src: docs/README-FIRST.txt
         dst: README-FIRST.txt
-        info:
-          mode: 0644
-      - src: docs/steamgifts-bot.bat
-        dst: steamgifts-bot.bat
         info:
           mode: 0644
 
