@@ -40,11 +40,13 @@ func TestSniperScoreHighWhenClosingWithFewEntries(t *testing.T) {
 	}
 }
 
-func TestCostScorePrefersCheap(t *testing.T) {
-	cheap := costScore(sg.Giveaway{Cost: 1}, DefaultCostWeight)
-	expensive := costScore(sg.Giveaway{Cost: 50}, DefaultCostWeight)
-	if cheap <= expensive {
-		t.Errorf("cheap (%.2f) should beat expensive (%.2f)", cheap, expensive)
+func TestValueScorePrefersHighEV(t *testing.T) {
+	// A cheap game with few entries should score higher than an expensive
+	// game with many entries — expected value per point is better.
+	highEV := valueScore(sg.Giveaway{Cost: 5, Entries: 3, Copies: 1}, DefaultCostWeight)
+	lowEV := valueScore(sg.Giveaway{Cost: 50, Entries: 500, Copies: 1}, DefaultCostWeight)
+	if highEV <= lowEV {
+		t.Errorf("high EV (%.2f) should beat low EV (%.2f)", highEV, lowEV)
 	}
 }
 
@@ -91,11 +93,19 @@ func TestLevelLockedBoost(t *testing.T) {
 }
 
 func TestLevelScoreZeroWhenUnknown(t *testing.T) {
-	if s := levelScore(sg.Giveaway{Level: 5}, 0, DefaultLevelWeight); s != 0 {
+	if s := levelScore(sg.Giveaway{Level: 5, Entries: 10}, 0, DefaultLevelWeight); s != 0 {
 		t.Errorf("expected 0 with unknown account level, got %.2f", s)
 	}
-	if s := levelScore(sg.Giveaway{Level: 0}, 5, DefaultLevelWeight); s != 0 {
+	if s := levelScore(sg.Giveaway{Level: 0, Entries: 10}, 5, DefaultLevelWeight); s != 0 {
 		t.Errorf("expected 0 with no level requirement, got %.2f", s)
+	}
+}
+
+func TestLevelScoreHigherWithFewerEntries(t *testing.T) {
+	fewEntries := levelScore(sg.Giveaway{Level: 8, Entries: 3}, 10, DefaultLevelWeight)
+	manyEntries := levelScore(sg.Giveaway{Level: 8, Entries: 500}, 10, DefaultLevelWeight)
+	if fewEntries <= manyEntries {
+		t.Errorf("few entries (%.2f) should score higher than many (%.2f)", fewEntries, manyEntries)
 	}
 }
 

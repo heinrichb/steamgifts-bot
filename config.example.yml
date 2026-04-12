@@ -24,8 +24,8 @@ defaults:
 
   # How many listing pages to fetch per filter. Steamgifts shows ~50
   # giveaways per page. Higher = more candidates but longer cycle time
-  # (each page adds a 3-8s rate-limit delay). Default 1, recommended 3.
-  max_pages: 1
+  # (each page adds a 3-8s rate-limit delay).
+  max_pages: 3
 
   # Sent as the User-Agent header. The default mimics a current desktop
   # Chrome on Windows so the bot doesn't announce itself to steamgifts.
@@ -41,12 +41,14 @@ defaults:
   steam_sync_enabled: true
   steam_sync_interval_hours: 24
 
-# Filter priority: each scan cycle walks this list in order and stops when
-# the account drops below `min_points` or hits `max_entries_per_run`.
+# Filters control which listing pages the bot scans for candidates.
+# Order doesn't matter for priority — the scorer ranks all candidates
+# after scanning and enters the highest-value ones first.
+# More filters = wider candidate pool = better scoring decisions.
 #
-# Available filters (each maps to a real /giveaways/search URL):
-#   wishlist     — only games on your Steam wishlist
-#   group        — group-only giveaways you're eligible for (often less competition)
+# Available filters (each maps to a /giveaways/search URL):
+#   wishlist     — games on your Steam wishlist (get a scorer boost)
+#   group        — group-only giveaways (often less competition)
 #   recommended  — Steamgifts recommendations
 #   new          — newest giveaways
 #   dlc          — DLC-only
