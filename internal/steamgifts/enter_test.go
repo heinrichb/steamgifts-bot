@@ -98,6 +98,16 @@ func TestFilterURL(t *testing.T) {
 	if _, err := FilterURL("bogus"); err == nil {
 		t.Error("expected error for unknown filter")
 	}
+
+	// Raw URL escape hatch.
+	raw := "/giveaways/search?type=group&copy_min=3&dlc=true"
+	got, err := FilterURL(raw)
+	if err != nil {
+		t.Errorf("raw URL: %v", err)
+	}
+	if got != raw {
+		t.Errorf("raw URL: got %q, want %q", got, raw)
+	}
 }
 
 func TestWithPage(t *testing.T) {

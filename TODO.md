@@ -17,6 +17,10 @@ A living list of things that would make the bot better. Not promises — just th
 - [x] **Configurable scorer weights** — all weights tunable via config.yml `scorer:` section
 - [x] **Clearer cookie expiry messages** — detects login page, tells user exactly what to do
 - [x] **macOS LaunchAgent service install** — completes Linux/Windows/macOS platform trifecta
+- [x] **Per-account scorer weight overrides** — different strategies per account via config
+- [x] **Telegram bot notifications** — alongside Discord, with shared postJSON helper
+- [x] **Expected-value scoring** — replaced cost-efficiency (rewarded shovelware) with win probability per point
+- [x] **Multicopy in default filters** — multi-copy giveaways scanned by default
 
 ## UX
 
@@ -28,7 +32,6 @@ A living list of things that would make the bot better. Not promises — just th
 ## Scorer enhancements
 
 - [ ] **Popularity / quality boost** — score AAA/highly-rated games higher via Steam Web API + SQLite cache
-- [ ] **Per-account weight overrides** — different scoring strategies per account
 - [ ] **Optional per-Steam-app entry cap** _(default: off)_ — limit entries per game for users who want to spread points wider. Default is uncapped (steamgifts auto-refunds on win)
 
 > **Note on duplicate games**: by default the bot enters every unique giveaway code, including multiple for the same game. Steamgifts auto-refunds losing entries on win, so this is economically correct.
@@ -43,7 +46,6 @@ A living list of things that would make the bot better. Not promises — just th
 
 - [ ] **Captcha detection + alerting** — pause + notify instead of burning entries
 - [ ] **Cookie rotation / re-auth via Steam OpenID**
-- [ ] **Telegram / generic webhook notifications** — extend the existing notify package
 
 ## Features
 
