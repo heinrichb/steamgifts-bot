@@ -33,3 +33,5 @@ Thumbs.db
 
 # Dependencies vendored locally (we use modules)
 /vendor/
+go.work
+go.work.sum
