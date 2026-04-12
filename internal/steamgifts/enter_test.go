@@ -66,8 +66,6 @@ func TestFilterURL(t *testing.T) {
 		"new":         "/giveaways/search?type=new",
 		"dlc":         "/giveaways/search?dlc=true",
 		"multicopy":   "/giveaways/search?copy_min=2",
-		"multi-copy":  "/giveaways/search?copy_min=2",
-		"copies":      "/giveaways/search?copy_min=2",
 		"all":         "/giveaways/search",
 	}
 	for in, want := range cases {

@@ -32,12 +32,8 @@ const (
 	FilterAll         = "all"
 )
 
-// DefaultUserAgent is the User-Agent header sent on every request.
-//
-// We deliberately mimic a current real desktop browser rather than
-// identifying as "steamgifts-bot" — the site can see this string and
-// announcing ourselves would be an obvious flag. Override per-account
-// or globally via config if you want to match your own browser exactly.
+// DefaultUserAgent mimics a current desktop Chrome so the bot doesn't
+// announce itself to steamgifts on every request.
 const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
 	"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
