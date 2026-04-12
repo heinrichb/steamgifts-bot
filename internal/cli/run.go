@@ -3,8 +3,10 @@ package cli
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -62,9 +64,33 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 	metricsAddr, _ := cmd.Flags().GetString("metrics-addr")
 	dashboardAddr, _ := cmd.Flags().GetString("dashboard-addr")
 
-	logger, err := logpkg.New(os.Stderr, levelStr, logFormat)
-	if err != nil {
-		return err
+	// Determine log file path: next to config, or a default location.
+	logFilePath := ""
+	if p := findConfig(); p != "" {
+		logFilePath = filepath.Join(filepath.Dir(p), "steamgifts-bot.log")
+	} else if dir, err := os.UserConfigDir(); err == nil {
+		logFilePath = filepath.Join(dir, "steamgifts-bot", "steamgifts-bot.log")
+	}
+
+	var logger *slog.Logger
+	if logFilePath != "" {
+		l, cleanup, err := logpkg.NewWithFile(levelStr, logFormat, logFilePath)
+		if err != nil {
+			// Fall back to console-only if file logging fails.
+			l2, _ := logpkg.New(os.Stderr, levelStr, logFormat)
+			l2.Warn("failed to open log file, using console only", "path", logFilePath, "err", err)
+			logger = l2
+		} else {
+			defer cleanup()
+			logger = l
+			logger.Info("logging to file", "path", logFilePath)
+		}
+	} else {
+		l, lerr := logpkg.New(os.Stderr, levelStr, logFormat)
+		if lerr != nil {
+			return lerr
+		}
+		logger = l
 	}
 
 	if metricsAddr != "" {
