@@ -26,13 +26,6 @@ builds:
     goarch:
       - amd64
       - arm64
-    overrides:
-      - goos: windows
-        ldflags:
-          - -s -w -H windowsgui
-          - -X main.version={{ .Version }}
-          - -X main.commit={{ .ShortCommit }}
-          - -X main.date={{ .Date }}
 
 archives:
   - id: default

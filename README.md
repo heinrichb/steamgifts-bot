@@ -159,7 +159,7 @@ steamgifts-bot version
 
 ```bash
 make build           # build Linux binary
-make build-windows   # cross-compile Windows .exe (GUI subsystem) → dist/
+make build-windows   # cross-compile Windows .exe → dist/
 make build-all       # both
 make test            # go test -race
 make lint            # golangci-lint
