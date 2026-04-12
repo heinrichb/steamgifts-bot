@@ -15,11 +15,11 @@ func newServiceCmd() *cobra.Command {
 		Long: `Registers steamgifts-bot to run automatically:
 
   * Linux:   ~/.config/systemd/user/steamgifts-bot.service
-  * Windows: a per-user Scheduled Task that runs on logon
+  * Windows: a .bat in your Startup folder (starts minimized on login)
   * macOS:   not yet implemented (see TODO.md)
 
 All install paths print exactly what they did and how to undo it. No
-elevation is required — these are user-scope installs only.`,
+admin elevation is required — these are user-scope installs only.`,
 	}
 	cmd.AddCommand(
 		&cobra.Command{

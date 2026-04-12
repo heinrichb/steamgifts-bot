@@ -230,7 +230,7 @@ func offerService(_ context.Context) error {
 func serviceDescription() string {
 	switch service.Platform() {
 	case "windows":
-		return "I'll create a per-user Scheduled Task that starts the bot when you log in. No admin required, fully reversible."
+		return "I'll add a small script to your Startup folder so the bot starts minimized when you log in. No admin required, fully reversible."
 	case "linux":
 		return "I'll write a systemd user unit and enable it. Runs as you, fully reversible."
 	default:
