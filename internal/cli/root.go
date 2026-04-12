@@ -7,14 +7,17 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/heinrichb/steamgifts-bot/internal/config"
 	"github.com/heinrichb/steamgifts-bot/internal/service"
+	"github.com/heinrichb/steamgifts-bot/internal/update"
 	"github.com/heinrichb/steamgifts-bot/internal/wizard"
 )
 
@@ -41,6 +44,9 @@ background service, or run it in Docker.`,
 		Version:       fmt.Sprintf("%s (commit %s, built %s)", version, commit, date),
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			go update.Check(context.Background(), slog.Default(), version)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if findConfig() == "" {
 				fmt.Fprintln(os.Stderr, "No config found — launching first-run setup wizard.")
