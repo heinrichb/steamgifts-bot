@@ -21,6 +21,13 @@ import (
 	"github.com/heinrichb/steamgifts-bot/internal/wizard"
 )
 
+func init() {
+	// Cobra's mousetrap blocks CLI apps launched by double-clicking on
+	// Windows. We explicitly support that launch mode (the wizard runs
+	// on first launch), so disable it.
+	cobra.MousetrapHelpText = ""
+}
+
 // NewRootCmd builds the cobra command tree. Version metadata is injected
 // from main.go (which gets it from -ldflags at build time).
 func NewRootCmd(version, commit, date string) *cobra.Command {

@@ -136,9 +136,10 @@ func (r *Runner) shouldSyncSteam() bool {
 	interval := r.Settings.SteamSyncInterval()
 	elapsed := time.Since(last)
 	if elapsed < interval {
+		remaining := (interval - elapsed).Round(time.Second)
 		r.Logger.Debug("steam sync: cooldown",
 			"last_sync", last.Format(time.RFC3339),
-			"next_in", (interval - elapsed).Round(time.Second),
+			"next_in", remaining.String(),
 		)
 		return false
 	}
@@ -297,6 +298,10 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	maxPerApp := r.Settings.MaxEntriesPerAppValue()
 	appEntries := make(map[string]int) // track entries per game name
 	for _, c := range ranked {
+		if err := ctx.Err(); err != nil {
+			r.Logger.Debug("stopping entry loop", "reason", err)
+			break
+		}
 		if maxEntries > 0 && entered >= maxEntries {
 			r.Logger.Debug("max entries per run reached", "max", maxEntries)
 			break
