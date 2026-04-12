@@ -14,6 +14,7 @@ import (
 	metricspkg "github.com/heinrichb/steamgifts-bot/internal/metrics"
 	"github.com/heinrichb/steamgifts-bot/internal/notify"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
+	"github.com/heinrichb/steamgifts-bot/internal/web"
 )
 
 func newRunCmd() *cobra.Command {
@@ -36,6 +37,7 @@ modern terminal (cmd.exe, PowerShell, Windows Terminal, gnome-terminal).`,
 	cmd.Flags().Bool("tui", false, "show a live status dashboard instead of streaming logs")
 	cmd.Flags().String("state-file", "", "path to state.json (default: beside config.yml)")
 	cmd.Flags().String("metrics-addr", "", "address for Prometheus /metrics (e.g. :9090). Disabled if empty.")
+	cmd.Flags().String("dashboard-addr", "", "address for web dashboard (e.g. :8080). Disabled if empty.")
 	return cmd
 }
 
@@ -58,6 +60,7 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 	levelStr, _ := cmd.Flags().GetString("log-level")
 	logFormat, _ := cmd.Flags().GetString("log-format")
 	metricsAddr, _ := cmd.Flags().GetString("metrics-addr")
+	dashboardAddr, _ := cmd.Flags().GetString("dashboard-addr")
 
 	logger, err := logpkg.New(os.Stderr, levelStr, logFormat)
 	if err != nil {
@@ -115,6 +118,15 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 			}
 			stop()
 			return runErr
+		}
+
+		if dashboardAddr != "" {
+			logger.Info("starting dashboard", "addr", dashboardAddr)
+			go func() {
+				if err := web.Serve(ctx, dashboardAddr, orch); err != nil {
+					logger.Error("dashboard server failed", "err", err)
+				}
+			}()
 		}
 
 		// Headless mode: run until SIGINT/SIGTERM or SIGHUP.
