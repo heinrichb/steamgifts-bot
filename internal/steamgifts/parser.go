@@ -160,9 +160,15 @@ func parseGiveawayRow(s *goquery.Selection) (Giveaway, bool) {
 	})
 
 	// Required contributor level, e.g. <div class="giveaway__column--contributor-level ...">Level 2+</div>
+	// Steamgifts uses --negative when the signed-in user doesn't meet the
+	// requirement and --positive when they do.
 	s.Find(`[class*="giveaway__column--contributor-level"]`).EachWithBreak(func(_ int, el *goquery.Selection) bool {
 		if m := levelRe.FindStringSubmatch(el.Text()); len(m) == 2 {
 			g.Level = atoiSafe(m[1])
+			class, _ := el.Attr("class")
+			if strings.Contains(class, "--negative") {
+				g.Unjoinable = true
+			}
 			return false
 		}
 		return true

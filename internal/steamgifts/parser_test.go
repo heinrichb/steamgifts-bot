@@ -84,6 +84,9 @@ func TestParseListPageBasic(t *testing.T) {
 	if levelLocked.Cost != 20 || levelLocked.Entries != 3 {
 		t.Errorf("EEEE5 parsed wrong: %+v", levelLocked)
 	}
+	if !levelLocked.Unjoinable {
+		t.Error("EEEE5 with --negative level class should be marked Unjoinable")
+	}
 }
 
 func TestJoinableLogic(t *testing.T) {
@@ -121,17 +124,17 @@ func TestJoinableLogic(t *testing.T) {
 	if byCode["DDDD4"].Joinable(137, 0, accountLevel, true) {
 		t.Error("DDDD4 expired must not be joinable")
 	}
-	// Level locked: requires 8, account is 5 — must not be joinable.
+	// Level locked: requires 8 and marked --negative by steamgifts.
+	// The parser sets Unjoinable=true for --negative level classes,
+	// so Joinable always returns false regardless of account level.
 	if byCode["EEEE5"].Joinable(137, 0, accountLevel, true) {
-		t.Error("EEEE5 level-locked should not be joinable at level 5")
+		t.Error("EEEE5 level-locked (negative) should not be joinable")
 	}
-	// Level locked: at sufficient level — joinable.
-	if !byCode["EEEE5"].Joinable(137, 0, 10, true) {
-		t.Error("EEEE5 should be joinable at level 10")
+	if byCode["EEEE5"].Joinable(137, 0, 10, true) {
+		t.Error("EEEE5 should not be joinable even at level 10 — parser marks --negative as unjoinable")
 	}
-	// Level locked but account level unknown (0): defer to server, don't block.
-	if !byCode["EEEE5"].Joinable(137, 0, 0, true) {
-		t.Error("EEEE5 should be joinable when account level is unknown (0)")
+	if byCode["EEEE5"].Joinable(137, 0, 0, true) {
+		t.Error("EEEE5 should not be joinable with unknown level — parser marks --negative as unjoinable")
 	}
 }
 
