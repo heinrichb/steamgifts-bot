@@ -33,10 +33,19 @@ defaults:
 
 # Filter priority: each scan cycle walks this list in order and stops when
 # the account drops below `min_points` or hits `max_entries_per_run`.
-# Valid filters: wishlist, group, recommended, new, all
+#
+# Available filters (each maps to a real /giveaways/search URL):
+#   wishlist     — only games on your Steam wishlist
+#   group        — group-only giveaways you're eligible for (often less competition)
+#   recommended  — Steamgifts recommendations
+#   new          — newest giveaways
+#   dlc          — DLC-only
+#   multicopy    — multi-copy giveaways (>= 2 copies — better odds)
+#   all          — everything
 filters:
   - wishlist
   - group
+  - multicopy
   - recommended
   - new
   - all

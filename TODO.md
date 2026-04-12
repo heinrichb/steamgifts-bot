@@ -18,6 +18,17 @@ A living list of things that would make the bot better. Not promises — just th
 - [ ] **Cookie rotation / re-auth via Steam OpenID** so users don't have to manually refresh `PHPSESSID` periodically.
 - [ ] **Soft-fail on transient HTTP errors** (network blips, 502s) with backoff instead of logging an error every cycle.
 
+## Filter system v2
+
+The current `filters:` list accepts only fixed names (`wishlist`, `dlc`, `multicopy`, etc.) that map 1:1 to a hard-coded URL. Power users will want more.
+
+- [ ] **Parameterized filters** — let `copy_min` take any N (`copy_min: 5`), let `type` take any value, etc.
+- [ ] **Combined filters** — single request with multiple constraints (e.g. wishlist AND multicopy: `/giveaways/search?type=wishlist&copy_min=2`).
+- [ ] **Raw URL escape hatch** — `raw: "/giveaways/search?type=group&copy_min=3&dlc=true"` for users who want full control.
+- [ ] **Pagination** — listing pages have `&page=N`. Right now we only fetch page 1; for filters with lots of results that's fine because we sort by new and old ones are usually already entered, but the scoring engine will want a wider net.
+
+The likely shape is moving `filters` from `[]string` to `[]Filter` where `Filter` is a struct with optional `type`, `copy_min`, `dlc`, `pages`, and `raw` fields. Backwards compatible via a custom unmarshal that accepts a bare string.
+
 ## Smart entry / scoring engine
 
 Today the bot enters every joinable giveaway in DOM order, filter by filter. That's leaving wins on the table — a smarter strategy is to **score** each candidate and enter the highest-value ones first, until points run out.

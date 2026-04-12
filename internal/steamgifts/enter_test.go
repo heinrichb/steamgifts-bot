@@ -60,11 +60,15 @@ func TestEnterServerError(t *testing.T) {
 
 func TestFilterURL(t *testing.T) {
 	cases := map[string]string{
-		"wishlist":    "/?type=wishlist",
-		"group":       "/?type=group",
-		"recommended": "/?type=recommended",
-		"new":         "/?type=new",
-		"all":         "/",
+		"wishlist":    "/giveaways/search?type=wishlist",
+		"group":       "/giveaways/search?type=group",
+		"recommended": "/giveaways/search?type=recommended",
+		"new":         "/giveaways/search?type=new",
+		"dlc":         "/giveaways/search?dlc=true",
+		"multicopy":   "/giveaways/search?copy_min=2",
+		"multi-copy":  "/giveaways/search?copy_min=2",
+		"copies":      "/giveaways/search?copy_min=2",
+		"all":         "/giveaways/search",
 	}
 	for in, want := range cases {
 		got, err := FilterURL(in)
