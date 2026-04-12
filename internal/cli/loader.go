@@ -83,6 +83,22 @@ func loadConfig(path string) (*config.Config, string, error) {
 	return &cfg, path, nil
 }
 
+// loadValidConfig loads and validates the config, returning user-friendly
+// errors for the two most common failure modes (missing config, invalid config).
+func loadValidConfig(configPath string) (*config.Config, string, error) {
+	cfg, path, err := loadConfig(configPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, "", fmt.Errorf("no config found — run `steamgifts-bot setup` to create one")
+		}
+		return nil, "", err
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, path, fmt.Errorf("invalid config (%s): %w", path, err)
+	}
+	return cfg, path, nil
+}
+
 // saveConfig writes the config to disk as YAML, creating parent directories
 // as needed and setting strict permissions (the file holds session cookies).
 func saveConfig(cfg *config.Config, path string) error {
