@@ -162,6 +162,8 @@ make build           # build Linux binary
 make build-windows   # cross-compile Windows .exe → dist/
 make build-all       # both
 make test            # go test -race
+make test-cover      # run tests + colorized coverage report
+make test-cover-html # run tests + open HTML coverage in browser
 make lint            # golangci-lint
 make fmt             # gofmt + goimports + prettier
 make run             # build + dry-run --once at debug level

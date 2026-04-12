@@ -19,26 +19,27 @@ const discordColorGreen = 0x00FF00
 var telegramBaseURL = "https://api.telegram.org"
 
 // Notifier sends win notifications to configured targets.
+// Construct with [New]; zero-value is safe but disabled.
 type Notifier struct {
-	DiscordURL    string
-	TelegramToken string
-	TelegramChat  string
+	discordURL    string
+	telegramToken string
+	telegramChat  string
 	httpClient    *http.Client
 }
 
 // New creates a Notifier. All fields are optional — empty = disabled.
 func New(discordURL, telegramToken, telegramChat string) *Notifier {
 	return &Notifier{
-		DiscordURL:    discordURL,
-		TelegramToken: telegramToken,
-		TelegramChat:  telegramChat,
+		discordURL:    discordURL,
+		telegramToken: telegramToken,
+		telegramChat:  telegramChat,
 		httpClient:    &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
 // Enabled reports whether any notification target is configured.
 func (n *Notifier) Enabled() bool {
-	return n.DiscordURL != "" || (n.TelegramToken != "" && n.TelegramChat != "")
+	return n.discordURL != "" || (n.telegramToken != "" && n.telegramChat != "")
 }
 
 // Win represents a won giveaway to notify about.
@@ -51,12 +52,12 @@ type Win struct {
 // SendWin sends a win notification to all configured targets.
 func (n *Notifier) SendWin(ctx context.Context, win Win) error {
 	var firstErr error
-	if n.DiscordURL != "" {
+	if n.discordURL != "" {
 		if err := n.sendDiscord(ctx, win); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
-	if n.TelegramToken != "" && n.TelegramChat != "" {
+	if n.telegramToken != "" && n.telegramChat != "" {
 		if err := n.sendTelegram(ctx, win); err != nil && firstErr == nil {
 			firstErr = err
 		}
@@ -66,7 +67,7 @@ func (n *Notifier) SendWin(ctx context.Context, win Win) error {
 
 func (n *Notifier) sendDiscord(ctx context.Context, win Win) error {
 	embed := map[string]any{
-		"title":       fmt.Sprintf("🎉 Won: %s", win.GameName),
+		"title":       fmt.Sprintf("Won: %s", win.GameName),
 		"description": fmt.Sprintf("Account **%s** won a giveaway!", win.AccountName),
 		"color":       discordColorGreen,
 		"fields": []map[string]any{
@@ -78,17 +79,17 @@ func (n *Notifier) sendDiscord(ctx context.Context, win Win) error {
 		embed["url"] = win.GiveawayURL
 	}
 	payload := map[string]any{"embeds": []any{embed}}
-	return n.postJSON(ctx, n.DiscordURL, payload, "discord")
+	return n.postJSON(ctx, n.discordURL, payload, "discord")
 }
 
 func (n *Notifier) sendTelegram(ctx context.Context, win Win) error {
-	text := fmt.Sprintf("🎉 *Won: %s*\nAccount: %s", win.GameName, win.AccountName)
+	text := fmt.Sprintf("*Won: %s*\nAccount: %s", win.GameName, win.AccountName)
 	if win.GiveawayURL != "" {
 		text += fmt.Sprintf("\n[View giveaway](%s)", win.GiveawayURL)
 	}
-	url := fmt.Sprintf("%s/bot%s/sendMessage", telegramBaseURL, n.TelegramToken)
+	url := fmt.Sprintf("%s/bot%s/sendMessage", telegramBaseURL, n.telegramToken)
 	payload := map[string]any{
-		"chat_id":    n.TelegramChat,
+		"chat_id":    n.telegramChat,
 		"text":       text,
 		"parse_mode": "Markdown",
 	}
