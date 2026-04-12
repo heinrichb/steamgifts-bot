@@ -245,6 +245,11 @@ func (r *Runner) runOnce(ctx context.Context) error {
 			)
 
 			for _, g := range giveaways {
+				// Tag wishlist codes BEFORE dedup so games discovered
+				// on an earlier filter still get their wishlist boost.
+				if filter == sg.FilterWishlist {
+					wishlistCodes[g.Code] = true
+				}
 				if seen[g.Code] {
 					continue
 				}
@@ -252,9 +257,6 @@ func (r *Runner) runOnce(ctx context.Context) error {
 					continue
 				}
 				seen[g.Code] = true
-				if filter == sg.FilterWishlist {
-					wishlistCodes[g.Code] = true
-				}
 				candidates = append(candidates, g)
 			}
 

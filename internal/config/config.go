@@ -80,7 +80,7 @@ func Defaults() Config {
 	pause := 15
 	pinned := false
 	maxEntries := 25
-	maxPages := 1
+	maxPages := 3
 	syncEnabled := true
 	syncInterval := 24
 	return Config{

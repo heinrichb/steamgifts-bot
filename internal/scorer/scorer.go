@@ -23,10 +23,7 @@ const (
 	DefaultCostWeight     = 1.0
 )
 
-const (
-	levelMaxBoost = 10
-	maxCost       = 50.0
-)
+const levelMaxBoost = 10
 
 // Weights holds the tunable scoring parameters. Zero values use defaults.
 type Weights struct {
@@ -89,7 +86,7 @@ func Rank(giveaways []sg.Giveaway, sctx Context) []Candidate {
 func score(g sg.Giveaway, sctx Context, now time.Time) float64 {
 	w := sctx.Weights
 	s := sniperScore(g, now, w.Sniper, w.SniperHours) +
-		costScore(g, w.Cost) +
+		valueScore(g, w.Cost) +
 		levelScore(g, sctx.AccountLevel, w.Level)
 	if sctx.WishlistCodes[g.Code] {
 		s += w.Wishlist
@@ -97,12 +94,16 @@ func score(g sg.Giveaway, sctx Context, now time.Time) float64 {
 	return s
 }
 
+// levelScore boosts level-locked giveaways. Higher requirements mean fewer
+// eligible users, and that advantage is amplified when entry count is low.
 func levelScore(g sg.Giveaway, accountLevel int, weight float64) float64 {
 	if g.Level <= 0 || accountLevel <= 0 {
 		return 0
 	}
-	lvl := math.Min(float64(g.Level), float64(levelMaxBoost))
-	return weight * (lvl / float64(levelMaxBoost))
+	levelFactor := math.Min(float64(g.Level)/float64(levelMaxBoost), 1.0)
+	entries := math.Max(float64(g.Entries), 1)
+	scarcity := 1.0 / math.Log2(entries+1)
+	return weight * levelFactor * scarcity
 }
 
 func sniperScore(g sg.Giveaway, now time.Time, weight, thresholdHours float64) float64 {
@@ -120,7 +121,16 @@ func sniperScore(g sg.Giveaway, now time.Time, weight, thresholdHours float64) f
 	return weight * urgency * winRate
 }
 
-func costScore(g sg.Giveaway, weight float64) float64 {
+// valueScore replaces the old cost-efficiency formula. Instead of rewarding
+// cheapness (which biased toward shovelware), this rewards expected value:
+// win probability per point spent = (copies / entries) / cost.
+// Normalized to [0, weight] via a log scale so it doesn't dominate.
+func valueScore(g sg.Giveaway, weight float64) float64 {
+	entries := math.Max(float64(g.Entries), 1)
+	copies := math.Max(float64(g.Copies), 1)
 	cost := math.Max(float64(g.Cost), 1)
-	return weight * (1.0 - math.Min(cost/maxCost, 1.0))
+	ev := (copies / entries) / cost
+	// Log scale: raw EV can span many orders of magnitude.
+	// log1p maps [0, inf) → [0, inf) with diminishing returns.
+	return weight * math.Log1p(ev*100)
 }
