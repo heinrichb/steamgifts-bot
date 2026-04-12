@@ -13,6 +13,9 @@ config.local.*
 state.json
 .state-*.json
 
+# Log file (auto-generated next to config.yml)
+steamgifts-bot.log
+
 # Test / coverage artifacts
 *.test
 *.out
