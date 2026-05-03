@@ -15,6 +15,7 @@ import (
 
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // New constructs a slog.Logger writing to w at the given level and format.
@@ -34,10 +35,12 @@ func New(w io.Writer, levelStr, format string) (*slog.Logger, error) {
 }
 
 // NewWithFile creates a dual-output logger: the console handler writes to
-// stderr (colorized or plain), and a JSON file handler writes debug-level
-// structured logs to logPath with sensitive values redacted. The file is
-// created/appended automatically. Returns the logger and a cleanup func
-// that closes the file.
+// stderr (colorized or plain), and a JSON file handler writes structured
+// logs to logPath with sensitive values redacted. Both handlers honor
+// levelStr; pass "debug" to capture verbose HTTP-level detail in the file
+// for post-mortem. The file is rotated (100MB, 3 backups, 30 days, gzip)
+// so long-running instances don't fill the disk. Returns the logger and a
+// cleanup func that closes the underlying rotator.
 func NewWithFile(levelStr, format, logPath string) (*slog.Logger, func(), error) {
 	level, err := ParseLevel(levelStr)
 	if err != nil {
@@ -51,18 +54,30 @@ func NewWithFile(levelStr, format, logPath string) (*slog.Logger, func(), error)
 	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
 		return nil, nil, fmt.Errorf("log: mkdir: %w", err)
 	}
-	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	// Pre-create the file with 0o600 so the rotator inherits the same
+	// restrictive permissions lumberjack's own open (0o644) wouldn't give us.
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return nil, nil, fmt.Errorf("log: open %s: %w", logPath, err)
 	}
+	f.Close()
+	// Rotating writer: prevents the log from growing unbounded during
+	// long-running sessions.
+	rotator := &lumberjack.Logger{
+		Filename:   logPath,
+		MaxSize:    100, // megabytes
+		MaxBackups: 3,
+		MaxAge:     30, // days
+		Compress:   true,
+	}
 
-	// File handler: always JSON, always debug level, always redacted.
+	// File handler: always JSON, level matches console, always redacted.
 	fileH := &redactingHandler{
-		inner: slog.NewJSONHandler(f, &slog.HandlerOptions{Level: slog.LevelDebug}),
+		inner: slog.NewJSONHandler(rotator, &slog.HandlerOptions{Level: level}),
 	}
 
 	multi := &multiHandler{handlers: []slog.Handler{consoleH, fileH}}
-	return slog.New(multi), func() { f.Close() }, nil
+	return slog.New(multi), func() { rotator.Close() }, nil
 }
 
 func newHandler(w io.Writer, level slog.Level, format string) (slog.Handler, error) {

@@ -52,6 +52,48 @@ A living list of things that would make the bot better. Not promises — just th
 - [ ] **Wishlist sync from Steam profile URL** — auto-update which games to prioritize
 - [x] **Backup / restore** — `steamgifts-bot backup create/restore` zips config+state+logs
 
+## Auto-redeem won keys
+
+Delicate feature — a mistake could get accounts banned from steamgifts (not marking received, accidental duplicate comments) or Steam (too many bad-key attempts). Every subtask below is gated by config toggles, and the defaults leave everything off.
+
+### Config (new fields, all opt-in, default off)
+
+- [ ] **`auto_redeem.enabled: false`** — master switch for the whole feature
+- [ ] **`auto_redeem.require_appid_match: true`** — after redeem, validate the key activated the correct Steam appid; if not, abort and alert
+- [ ] **`auto_redeem.mark_received: true`** — POST the "mark received" action on the won-giveaway page (site etiquette; not marking can cause a ban)
+- [ ] **`auto_redeem.comment.enabled: false`** — post a thank-you comment on the giveaway page (separate toggle from redeem)
+- [ ] **`auto_redeem.comment.template: "Thanks!"`** — customizable message
+- [ ] **`auto_redeem.max_per_cycle: 1`** — hard cap per scan cycle per account
+- [ ] **`auto_redeem.dry_run: true`** — default to dry-run until user explicitly flips it; logs the full plan but performs no writes
+- [ ] Per-account overrides, same pattern as existing account settings
+- [ ] **`accounts[].steam_cookie`** — new field holding the Steam web session (`sessionid` + `steamLoginSecure`) required to call Steam's `ajaxRegisterKey` endpoint. Documented security note: as sensitive as the steamgifts cookie, redacted in logs
+
+### Core subtasks
+
+- [ ] **Persist won-game state to `state.json`** — new `redeemed` map keyed by giveaway code with `{attempted_at, status, appid, steam_result, commented_at}`. Critical invariant: `commented_at != nil` means we have already commented — **never comment twice**, regardless of any other state. This is the single source of truth for the 1-comment guardrail. Must survive restart (today's `seenWins` is in-memory only)
+- [ ] **Key extraction from giveaway page** — fetch `/giveaway/<code>/<slug>` for each won game, parse the key-reveal flow (may require a POST to reveal before the key appears in the DOM). Handle the case where the key is blank / already revealed / tied to a different store
+- [ ] **Key redemption against Steam** — POST to `store.steampowered.com/account/ajaxregisterkey` using `steam_cookie`; parse the JSON response. Map Steam's error codes (14 = already owned, 15 = invalid, 53 = rate-limited, 36 = region-locked, etc.) into typed Go errors
+- [ ] **Rate-limit Steam redemption aggressively** — Steam locks the account for 1h after 5 bad-key attempts and 24h after 10 in a day. Global backoff (not just per-account) when a rate-limit response comes back. Stop all redemption attempts on the first rate-limit hit in a cycle
+- [ ] **App-ID validation** — after a successful redeem, confirm the activated appid matches the appid advertised by the steamgifts giveaway (parse the Steam store link on the giveaway page). Any mismatch halts the flow, persists the anomaly, and alerts via the existing notifier
+- [ ] **Mark-received POST** — POST to the steamgifts "mark received" endpoint (likely `/ajax.php?do=feedback_set_received` or similar — confirm via network tab before coding) with the xsrf token
+- [ ] **Comment POST** — POST to the steamgifts comment endpoint (likely `/ajax.php?do=comment_insert` — confirm) with xsrf token, giveaway code, and the user's template. Gate on `commented_at == nil` check against persisted state **as the last action before the POST**, and set `commented_at` **before** the POST so a crash mid-POST never results in a second comment
+- [ ] **Dry-run + staged rollout** — feature ships with `dry_run: true` by default. Dry-run logs the entire planned flow (extracted key redacted, redeem call skipped, mark-received skipped, comment skipped) so the user can audit a real won giveaway before enabling writes. Bot 1's current unredeemed win is the first real test subject
+
+### Safety guardrails (non-negotiable)
+
+- [ ] **Never more than 1 comment per giveaway** — enforced by persisted `commented_at`, checked under a per-account mutex
+- [ ] **Abort-on-uncertainty** — any parser miss, HTTP anomaly, unexpected Steam response, or appid mismatch halts the entire redeem flow for that giveaway, records the failure with full context, and sends a notification. No retry without explicit human intervention
+- [ ] **Key redaction in logs** — add `steam_key`, `cd_key`, `product_key`, `activation_key` to [internal/log/log.go](internal/log/log.go) `sensitiveKeys`
+- [ ] **Kill-switch via SIGHUP** — flipping `auto_redeem.enabled: false` and sending SIGHUP stops any further redemption immediately (existing reload path)
+- [ ] **No concurrent redeem across accounts** — serialize redemption with a global mutex; Steam treats rapid cross-account redeems as suspicious
+- [ ] **Backoff on consecutive failures** — 3 consecutive failures of any kind pauses redemption for 24h and alerts the user
+
+### Tests
+
+- [ ] `httptest.Server` fixtures for: Steam success, Steam wrong-appid, Steam rate-limit, Steam invalid-key, steamgifts mark-received success, steamgifts comment success, steamgifts comment-already-posted
+- [ ] Table-driven test enforcing the "never comment twice" invariant against concurrent calls (sync/atomic or explicit mutex test)
+- [ ] Dry-run test: verifies no POSTs are issued and state is not mutated
+
 ## Observability
 
 - [x] **Prometheus `/metrics` endpoint** — `--metrics-addr :9090` exposes entries, points, cycles, sync, wins per account

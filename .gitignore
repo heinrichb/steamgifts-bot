@@ -34,6 +34,9 @@ Thumbs.db
 # GoReleaser
 .goreleaser-tmp/
 
+# Local Docker overrides
+docker-compose.override.yml
+
 # Dependencies vendored locally (we use modules)
 /vendor/
 go.work

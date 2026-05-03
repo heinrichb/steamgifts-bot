@@ -98,6 +98,51 @@ func TestNewWithFileInvalidFormat(t *testing.T) {
 	}
 }
 
+func TestNewWithFileHonorsInfoLevel(t *testing.T) {
+	dir := t.TempDir()
+	logPath := filepath.Join(dir, "test.log")
+
+	logger, cleanup, err := NewWithFile("info", "text", logPath)
+	if err != nil {
+		t.Fatalf("NewWithFile: %v", err)
+	}
+	defer cleanup()
+
+	logger.Debug("debug noise", "k", "v")
+	logger.Info("info kept", "k", "v")
+
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read log: %v", err)
+	}
+	content := string(data)
+	if strings.Contains(content, "debug noise") {
+		t.Errorf("debug record should not appear at info level, got: %s", content)
+	}
+	if !strings.Contains(content, "info kept") {
+		t.Errorf("info record should appear, got: %s", content)
+	}
+}
+
+func TestNewWithFileCreatesFileWithRestrictivePerms(t *testing.T) {
+	dir := t.TempDir()
+	logPath := filepath.Join(dir, "test.log")
+
+	_, cleanup, err := NewWithFile("info", "json", logPath)
+	if err != nil {
+		t.Fatalf("NewWithFile: %v", err)
+	}
+	defer cleanup()
+
+	info, err := os.Stat(logPath)
+	if err != nil {
+		t.Fatalf("stat log: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Errorf("log file perm = %v, want 0o600", perm)
+	}
+}
+
 func TestUseColorNonFile(t *testing.T) {
 	var buf bytes.Buffer
 	if useColor(&buf) {

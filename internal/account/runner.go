@@ -392,8 +392,17 @@ func (r *Runner) runOnce(ctx context.Context) error {
 // on retry — the user is fundamentally ineligible for this giveaway.
 func isPermanentRejection(err error) bool {
 	msg := err.Error()
-	return strings.Contains(msg, "Missing Base Game") ||
-		strings.Contains(msg, "Level") && strings.Contains(msg, "Required")
+	switch {
+	case strings.Contains(msg, "Missing Base Game"):
+		return true
+	case strings.Contains(msg, "Exists in Account"):
+		return true
+	case strings.Contains(msg, "Previously Won"):
+		return true
+	case strings.Contains(msg, "Level") && strings.Contains(msg, "Required"):
+		return true
+	}
+	return false
 }
 
 func (r *Runner) checkWins(ctx context.Context) {

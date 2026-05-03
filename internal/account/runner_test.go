@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -227,6 +228,30 @@ func TestRunOnceHandlesEntryErrors(t *testing.T) {
 	}
 	if snap.EntriesAttempt != 2 {
 		t.Errorf("expected 2 attempts, got %d", snap.EntriesAttempt)
+	}
+}
+
+func TestIsPermanentRejection(t *testing.T) {
+	cases := []struct {
+		name string
+		msg  string
+		want bool
+	}{
+		{"missing base game", "server: Missing Base Game for DLC", true},
+		{"exists in account", "server: Exists in Account", true},
+		{"previously won", "server: Previously Won this giveaway", true},
+		{"level required", "server: Level 5 Required", true},
+		{"transient network error", "connection reset by peer", false},
+		{"generic http 500", "server: internal server error", false},
+		{"empty message", "", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isPermanentRejection(errors.New(tc.msg))
+			if got != tc.want {
+				t.Errorf("isPermanentRejection(%q) = %v, want %v", tc.msg, got, tc.want)
+			}
+		})
 	}
 }
 

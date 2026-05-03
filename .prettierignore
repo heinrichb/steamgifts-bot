@@ -5,3 +5,4 @@ go.sum
 testdata/
 CHANGELOG.md
 deploy/helm/*/templates/
+state.json
