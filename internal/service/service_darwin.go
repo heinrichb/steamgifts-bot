@@ -79,6 +79,16 @@ func Uninstall() error {
 	return nil
 }
 
+// IsInstalled reports whether the LaunchAgent plist exists.
+func IsInstalled() bool {
+	path, err := plistPath()
+	if err != nil {
+		return false
+	}
+	_, err = os.Stat(path)
+	return err == nil
+}
+
 // Status reports whether the LaunchAgent is installed.
 func Status() (string, error) {
 	path, err := plistPath()

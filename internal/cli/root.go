@@ -52,6 +52,7 @@ background service, or run it in Docker.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			update.CleanupOldBinary()
 			go update.Check(context.Background(), slog.Default(), version)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -75,6 +76,7 @@ background service, or run it in Docker.`,
 		newAccountsCmd(),
 		newServiceCmd(),
 		newBackupCmd(),
+		newUpdateCmd(version),
 		newVersionCmd(version, commit, date),
 	)
 	return root
@@ -82,7 +84,26 @@ background service, or run it in Docker.`,
 
 // runMenu shows the interactive menu and dispatches the chosen action.
 func runMenu(cmd *cobra.Command, args []string) error {
-	choice, err := showMenu()
+	updateResult := waitForUpdateCheck()
+
+	// Auto-update: if enabled and an update is available, apply it.
+	if updateResult != nil && updateResult.Available {
+		configPath, _ := cmd.Flags().GetString("config")
+		cfg, _, _ := loadConfig(configPath)
+		if cfg != nil && cfg.AutoUpdateEnabled() {
+			fmt.Fprintf(cmd.OutOrStdout(), "⚡ Auto-updating to %s...\n", updateResult.LatestVersion)
+			if path, err := update.Apply(cmd.Context(), updateResult.Release); err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Auto-update failed: %v\n", err)
+				fmt.Fprintln(cmd.ErrOrStderr(), "Continuing with current version.")
+			} else {
+				fmt.Fprintf(cmd.OutOrStdout(), "✓ Updated: %s\n", path)
+				fmt.Fprintln(cmd.OutOrStdout(), "Please restart the application to use the new version.")
+				return nil
+			}
+		}
+	}
+
+	choice, err := showMenu(updateResult)
 	if err != nil {
 		return err
 	}
@@ -104,13 +125,14 @@ func runMenu(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Fprintf(cmd.OutOrStdout(), "✓ installed: %s\n", path)
 		return nil
-	case menuServiceStatus:
-		st, serr := service.Status()
-		if serr != nil {
+	case menuServiceUninstall:
+		if serr := service.Uninstall(); serr != nil {
 			return serr
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), st)
+		fmt.Fprintln(cmd.OutOrStdout(), "✓ background service uninstalled")
 		return nil
+	case menuUpdate:
+		return runUpdate(cmd, updateResult)
 	case menuSetup:
 		return runSetup(cmd, args)
 	case menuQuit:
@@ -118,6 +140,21 @@ func runMenu(cmd *cobra.Command, args []string) error {
 	default:
 		return nil
 	}
+}
+
+func runUpdate(cmd *cobra.Command, result *update.Result) error {
+	if result == nil || !result.Available {
+		fmt.Fprintln(cmd.OutOrStdout(), "No update available.")
+		return nil
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "Downloading %s...\n", result.LatestVersion)
+	path, err := update.Apply(cmd.Context(), result.Release)
+	if err != nil {
+		return fmt.Errorf("update failed: %w", err)
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "✓ Updated: %s\n", path)
+	fmt.Fprintln(cmd.OutOrStdout(), "Please restart the application to use the new version.")
+	return nil
 }
 
 func addAccountInteractive(cmd *cobra.Command) error {

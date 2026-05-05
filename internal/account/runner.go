@@ -234,15 +234,13 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	var accountLevel int
 	var latestPoints int
 
+	maxPages := r.Settings.MaxPagesValue()
 	for _, filter := range filters {
 		basePath, err := sg.FilterURL(filter)
 		if err != nil {
 			return err
 		}
-		// Page through all results until steamgifts returns an empty page.
-		// Safety cap prevents runaway requests if the site ever misbehaves.
-		const maxScanPages = 100
-		for pageNum := 1; pageNum <= maxScanPages; pageNum++ {
+		for pageNum := 1; pageNum <= maxPages; pageNum++ {
 			pageURL := sg.WithPage(basePath, pageNum)
 			page, giveaways, err := r.fetchPage(ctx, pageURL)
 			if err != nil {

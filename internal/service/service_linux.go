@@ -81,6 +81,16 @@ func Uninstall() error {
 	return nil
 }
 
+// IsInstalled reports whether the systemd user unit exists.
+func IsInstalled() bool {
+	path, err := unitPath()
+	if err != nil {
+		return false
+	}
+	_, err = os.Stat(path)
+	return err == nil
+}
+
 // Status returns a human-readable status line.
 func Status() (string, error) {
 	path, err := unitPath()

@@ -5,6 +5,7 @@ package service
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -29,7 +30,8 @@ func startupPath() (string, error) {
 }
 
 // Install creates a small .bat in the user's Startup folder that launches
-// the bot minimized on login. No admin elevation required.
+// the bot minimized on login, then starts the bot immediately so a reboot
+// is not required. No admin elevation required.
 func Install() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
@@ -39,12 +41,15 @@ func Install() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// start "" /MIN launches the bot in a minimized console window so it
-	// doesn't pop up in the user's face on every login.
 	script := fmt.Sprintf("@echo off\r\nstart \"steamgifts-bot\" /MIN \"%s\" run\r\n", exe)
 	if err := os.WriteFile(path, []byte(script), 0o644); err != nil {
 		return "", fmt.Errorf("service: write startup script: %w", err)
 	}
+	// Start the bot now so the user doesn't have to log out and back in.
+	cmd := exec.Command(exe, "run")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	_ = cmd.Start()
 	return path, nil
 }
 
@@ -58,6 +63,16 @@ func Uninstall() error {
 		return fmt.Errorf("service: remove startup script: %w", err)
 	}
 	return nil
+}
+
+// IsInstalled reports whether the startup .bat exists.
+func IsInstalled() bool {
+	path, err := startupPath()
+	if err != nil {
+		return false
+	}
+	_, err = os.Stat(path)
+	return err == nil
 }
 
 // Status reports whether the startup .bat exists.
