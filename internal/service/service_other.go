@@ -14,6 +14,9 @@ func Uninstall() error {
 	return errors.New("service install is not yet supported on this OS")
 }
 
+// IsInstalled on unsupported platforms always returns false.
+func IsInstalled() bool { return false }
+
 // Status on unsupported platforms returns a stub.
 func Status() (string, error) {
 	return "not supported on this OS", nil

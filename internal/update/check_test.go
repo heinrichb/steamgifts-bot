@@ -50,7 +50,7 @@ func TestCheckSkipsDevVersion(t *testing.T) {
 
 func TestCheckLogsWhenNewerAvailable(t *testing.T) {
 	withTestServer(t, func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(release{
+		json.NewEncoder(w).Encode(Release{
 			TagName: "v2.0.0",
 			HTMLURL: "https://github.com/heinrichb/steamgifts-bot/releases/tag/v2.0.0",
 		})
@@ -69,7 +69,7 @@ func TestCheckLogsWhenNewerAvailable(t *testing.T) {
 
 func TestCheckSameVersionNoLog(t *testing.T) {
 	withTestServer(t, func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(release{TagName: "v1.0.0", HTMLURL: "https://example.com"})
+		json.NewEncoder(w).Encode(Release{TagName: "v1.0.0", HTMLURL: "https://example.com"})
 	})
 
 	var buf bytes.Buffer
@@ -105,7 +105,7 @@ func TestCheckSilentOnBadJSON(t *testing.T) {
 
 func TestCheckSilentOnCancelledContext(t *testing.T) {
 	withTestServer(t, func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(release{TagName: "v9.0.0"})
+		json.NewEncoder(w).Encode(Release{TagName: "v9.0.0"})
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -120,7 +120,7 @@ func TestCheckSilentOnCancelledContext(t *testing.T) {
 
 func TestCheckStripsVPrefix(t *testing.T) {
 	withTestServer(t, func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(release{TagName: "v1.5.0"})
+		json.NewEncoder(w).Encode(Release{TagName: "v1.5.0"})
 	})
 
 	var buf bytes.Buffer
@@ -135,7 +135,7 @@ func TestCheckSendsAcceptHeader(t *testing.T) {
 	var gotAccept string
 	withTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotAccept = r.Header.Get("Accept")
-		json.NewEncoder(w).Encode(release{TagName: "v1.0.0"})
+		json.NewEncoder(w).Encode(Release{TagName: "v1.0.0"})
 	})
 
 	var buf bytes.Buffer

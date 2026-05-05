@@ -77,7 +77,7 @@ func NewWithFile(levelStr, format, logPath string) (*slog.Logger, func(), error)
 	}
 
 	multi := &multiHandler{handlers: []slog.Handler{consoleH, fileH}}
-	return slog.New(multi), func() { rotator.Close() }, nil
+	return slog.New(multi), func() { _ = rotator.Close() }, nil
 }
 
 func newHandler(w io.Writer, level slog.Level, format string) (slog.Handler, error) {
