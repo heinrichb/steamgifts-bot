@@ -335,7 +335,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 		if maxPerApp > 0 && appEntries[c.Name] >= maxPerApp {
 			continue
 		}
-		if points-c.Cost < effectiveMin {
+		if c.Cost > 0 && points-c.Cost < effectiveMin {
 			continue
 		}
 		if r.DryRun {

@@ -40,10 +40,10 @@ func (g Giveaway) Joinable(currentPoints, minPoints, accountLevel int, allowPinn
 	if !g.EndsAt.IsZero() && time.Now().After(g.EndsAt) {
 		return false
 	}
-	if g.Cost <= 0 {
+	if g.Cost < 0 {
 		return false
 	}
-	if currentPoints-g.Cost < minPoints {
+	if g.Cost > 0 && currentPoints-g.Cost < minPoints {
 		return false
 	}
 	return true
