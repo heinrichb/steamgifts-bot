@@ -83,7 +83,7 @@ func Check(ctx context.Context, logger *slog.Logger, currentVersion string) {
 }
 
 func check(ctx context.Context, currentVersion string) *Result {
-	if currentVersion == "" || currentVersion == "dev" {
+	if currentVersion == "" || strings.HasPrefix(currentVersion, "dev") {
 		return nil
 	}
 

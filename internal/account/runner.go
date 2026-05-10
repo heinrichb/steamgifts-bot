@@ -21,10 +21,6 @@ import (
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
-// pointsCap is the maximum points a steamgifts account can hold.
-// Points earned above this are wasted, so the bot should always
-// spend enough to stay below the cap.
-const pointsCap = 400
 
 // Runner runs the bot loop for one account.
 type Runner struct {
@@ -314,7 +310,7 @@ func (r *Runner) runOnce(ctx context.Context) error {
 	// --- Phase 3: enter in score order ---
 	// If at the point cap, relax min_points so we don't waste regeneration.
 	effectiveMin := minPts
-	if latestPoints >= pointsCap {
+	if latestPoints >= config.MaxPoints {
 		effectiveMin = 0
 		r.Logger.Debug("at point cap, relaxing min_points to spend down")
 	}

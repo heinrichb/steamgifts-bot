@@ -66,6 +66,9 @@ func newAccountsRemoveCmd() *cobra.Command {
 			configPath, _ := cmd.Flags().GetString("config")
 			cfg, path, err := loadConfig(configPath)
 			if err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					return errors.New("no config found — run `steamgifts-bot setup` to create one")
+				}
 				return err
 			}
 			out := cfg.Accounts[:0]

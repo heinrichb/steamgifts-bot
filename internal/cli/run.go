@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -16,6 +17,7 @@ import (
 	metrics "github.com/heinrichb/steamgifts-bot/internal/metrics"
 	"github.com/heinrichb/steamgifts-bot/internal/notify"
 	"github.com/heinrichb/steamgifts-bot/internal/state"
+	"github.com/heinrichb/steamgifts-bot/internal/update"
 	"github.com/heinrichb/steamgifts-bot/internal/web"
 )
 
@@ -106,6 +108,10 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 
 	sighup := sighupChan()
 
+	fmt.Fprintf(cmd.OutOrStdout(), "%s %s\n\n",
+		gradientMulti("SteamGifts Bot", brandColors...),
+		styleDim.Render("v"+buildVersion))
+
 	for {
 		cfg, path, err := loadValidConfig(configPath)
 		if err != nil {
@@ -155,7 +161,44 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 			}()
 		}
 
-		// Headless mode: run until SIGINT/SIGTERM or SIGHUP.
+		var updateCh chan string
+		if cfg.AutoUpdateEnabled() {
+			updateCh = make(chan string, 1)
+			go func() {
+				interval := cfg.UpdateCheckInterval()
+				logger.Info("auto-update enabled", "interval", interval)
+
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(30 * time.Second):
+				}
+
+				for {
+					update.Check(ctx, logger, buildVersion)
+					if r := update.Latest(); r != nil && r.Available {
+						logger.Info("update available, applying",
+							"current", buildVersion, "latest", r.LatestVersion)
+						if _, err := update.Apply(ctx, r.Release); err != nil {
+							logger.Error("auto-update failed", "err", err)
+						} else {
+							logger.Info("update applied, exiting for restart",
+								"version", r.LatestVersion)
+							updateCh <- r.LatestVersion
+							return
+						}
+					}
+
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(interval):
+					}
+				}
+			}()
+		}
+
+		// Headless mode: run until SIGINT/SIGTERM, SIGHUP, or auto-update.
 		done := make(chan error, 1)
 		go func() { done <- orch.Run(ctx, false) }()
 
@@ -168,6 +211,12 @@ func runBot(cmd *cobra.Command, dryRun, once, tui bool) error {
 			stop()   // cancel current orchestrator
 			<-done   // wait for runners to finish
 			continue // loop back to reload
+		case ver := <-updateCh:
+			logger.Info("shutting down after update", "version", ver)
+			stop()
+			<-done
+			fmt.Fprintf(os.Stdout, "Updated to %s. Restart to use the new version.\n", ver)
+			return nil
 		}
 	}
 }

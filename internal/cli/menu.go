@@ -1,12 +1,11 @@
 package cli
 
 import (
-	"fmt"
-	"time"
+	"strings"
 
-	"github.com/charmbracelet/huh"
+	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/heinrichb/steamgifts-bot/internal/service"
+	"github.com/heinrichb/steamgifts-bot/internal/config"
 	"github.com/heinrichb/steamgifts-bot/internal/update"
 )
 
@@ -18,64 +17,108 @@ const (
 	menuBackup           = "backup"
 	menuServiceInstall   = "install-service"
 	menuServiceUninstall = "uninstall-service"
+	menuViewLogs         = "view-logs"
 	menuUpdate           = "update"
 	menuSetup            = "setup"
 	menuQuit             = "quit"
 )
 
-// waitForUpdateCheck gives the background update check a short window to
-// finish so the menu can reflect whether an update is available.
-func waitForUpdateCheck() *update.Result {
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if r := update.Latest(); r != nil {
-			return r
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return update.Latest()
+type menuItem struct {
+	label string
+	desc  string
+	key   string
 }
 
-// showMenu presents an interactive menu so users who double-click the exe
-// (or just run `steamgifts-bot` with a config present) can navigate without
-// knowing CLI flags.
-func showMenu(updateResult *update.Result) (string, error) {
-	var serviceOption huh.Option[string]
-	if service.IsInstalled() {
-		serviceOption = huh.NewOption("Uninstall background service", menuServiceUninstall)
+type menuModel struct {
+	items  []menuItem
+	cursor int
+	chosen string
+}
+
+func newMenuModelWithState(cfg *config.Config, updateResult *update.Result, svcInstalled, svcActive bool) menuModel {
+	var items []menuItem
+
+	if svcActive {
+		items = append(items, menuItem{"View service logs", "tail the background service log", menuViewLogs})
 	} else {
-		serviceOption = huh.NewOption("Install as background service", menuServiceInstall)
+		items = append(items, menuItem{"Run bot", "start scanning and entering giveaways", menuRun})
+		items = append(items, menuItem{"Dry run", "scan without entering any giveaways", menuRunDryRun})
 	}
 
-	description := "What would you like to do?"
-	if updateResult != nil && updateResult.Available {
-		description = fmt.Sprintf("⚡ Update available: %s → %s", updateResult.CurrentVersion, updateResult.LatestVersion)
+	items = append(items, menuItem{"Check accounts", "validate cookies and show points", menuCheck})
+	items = append(items, menuItem{"Add an account", "capture a new cookie interactively", menuAddAccount})
+	items = append(items, menuItem{"Back up config", "create a backup archive", menuBackup})
+
+	if svcInstalled {
+		items = append(items, menuItem{"Uninstall service", "remove the background service", menuServiceUninstall})
+	} else {
+		items = append(items, menuItem{"Install service", "set up as a background service", menuServiceInstall})
 	}
 
-	opts := []huh.Option[string]{
-		huh.NewOption("Run bot", menuRun),
-		huh.NewOption("Run bot (dry-run — no entries submitted)", menuRunDryRun),
-		huh.NewOption("Check accounts (validate cookies + show points)", menuCheck),
-		huh.NewOption("Add an account", menuAddAccount),
-		huh.NewOption("Back up config + state", menuBackup),
-		serviceOption,
-	}
 	if updateResult != nil && updateResult.Available {
-		label := fmt.Sprintf("Update to %s", updateResult.LatestVersion)
-		opts = append(opts, huh.NewOption(label, menuUpdate))
+		items = append(items, menuItem{"Update to " + updateResult.LatestVersion, "download and apply the update", menuUpdate})
 	}
-	opts = append(opts,
-		huh.NewOption("Re-run setup wizard", menuSetup),
-		huh.NewOption("Quit", menuQuit),
+
+	items = append(items,
+		menuItem{"Setup wizard", "reconfigure from scratch", menuSetup},
+		menuItem{"Quit", "exit the application", menuQuit},
 	)
 
-	choice := menuRun
-	err := huh.NewSelect[string]().
-		Title("steamgifts-bot").
-		Description(description).
-		Options(opts...).
-		Value(&choice).
-		WithTheme(huh.ThemeCharm()).
-		Run()
-	return choice, err
+	return menuModel{
+		items: items,
+	}
+}
+
+func (m menuModel) Init() tea.Cmd { return nil }
+
+func (m menuModel) Update(msg tea.Msg) (menuModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "up", "w":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+		case "down", "s":
+			if m.cursor < len(m.items)-1 {
+				m.cursor++
+			}
+		case "home", "g":
+			m.cursor = 0
+		case "end", "G":
+			m.cursor = len(m.items) - 1
+		case "enter":
+			if m.cursor >= 0 && m.cursor < len(m.items) {
+				m.chosen = m.items[m.cursor].key
+			}
+		case "q", "esc":
+			m.chosen = menuQuit
+		}
+	}
+	return m, nil
+}
+
+func (m menuModel) View() string {
+	var b strings.Builder
+
+	for i, item := range m.items {
+		cursor := "  "
+		if i == m.cursor {
+			cursor = styleMenuCursor.Render("▸ ")
+		}
+
+		label := styleMenuItem.Render(item.label)
+		if i == m.cursor {
+			label = styleMenuSelected.Render(item.label)
+		}
+
+		desc := ""
+		if i == m.cursor {
+			desc = "  " + styleMenuDesc.Render(item.desc)
+		}
+
+		b.WriteString(cursor + label + desc + "\n")
+	}
+
+	return b.String()
 }

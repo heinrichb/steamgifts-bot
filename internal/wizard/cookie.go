@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/huh"
 	"github.com/pkg/browser"
 
 	"github.com/heinrichb/steamgifts-bot/internal/client"
@@ -33,12 +32,13 @@ func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error
 
 	openErr := browser.OpenURL(loginURL)
 	intro := strings.Join([]string{
-		"Sign in to steamgifts.com in the browser window that just opened, then come back here.",
+		"Sign in to steamgifts.com in the browser window that just opened,",
+		"then come back here.",
 		"",
 		"To copy your cookie:",
-		"  1. Press F12 (or right-click → Inspect)",
+		"  1. Press F12 (or right-click > Inspect)",
 		"  2. Open the 'Application' tab in Chrome — or 'Storage' in Firefox",
-		"  3. Expand 'Cookies' → 'https://www.steamgifts.com'",
+		"  3. Expand 'Cookies' > 'https://www.steamgifts.com'",
 		"  4. Click the 'PHPSESSID' row",
 		"  5. Copy the long Value string",
 	}, "\n")
@@ -46,53 +46,46 @@ func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error
 		intro = "Open this URL in your browser to sign in:\n  " + loginURL + "\n\n" + intro
 	}
 
-	if err := huh.NewNote().
-		Title("Step 1: capture your cookie").
-		Description(intro).
-		Next(true).
-		WithTheme(huh.ThemeCharm()).
-		Run(); err != nil {
+	if err := runNote("Step 1: capture your cookie", intro); err != nil {
 		return config.Account{}, err
 	}
 
 	var cookie string
 	var validated *sg.AccountState
 	for {
-		err := huh.NewInput().
-			Title("Paste your PHPSESSID cookie").
-			Description("Just the value — no quotes, no 'PHPSESSID=' prefix.").
-			EchoMode(huh.EchoModePassword).
-			Value(&cookie).
-			Validate(func(s string) error {
+		val, err := runInput(
+			"Paste your PHPSESSID cookie",
+			"Just the value — no quotes, no 'PHPSESSID=' prefix.",
+			"",
+			true,
+			func(s string) error {
 				if strings.TrimSpace(s) == "" {
 					return errors.New("cookie cannot be empty")
 				}
 				return nil
-			}).
-			WithTheme(huh.ThemeCharm()).
-			Run()
+			},
+		)
 		if err != nil {
 			return config.Account{}, err
 		}
+		cookie = val
 
-		fmt.Println("→ checking cookie against steamgifts.com…")
-		state, err := validateCookie(ctx, cookie, in.UserAgent)
-		if err == nil {
-			fmt.Printf("✓ signed in as %s — %d points\n\n", state.Username, state.Points)
+		fmt.Println("  checking cookie against steamgifts.com...")
+		state, verr := validateCookie(ctx, cookie, in.UserAgent)
+		if verr == nil {
+			fmt.Printf("  signed in as %s — %d points\n\n", state.Username, state.Points)
 			validated = state
 			break
 		}
 
-		fmt.Printf("✗ cookie didn't work: %s\n", err)
-		retry := true
-		_ = huh.NewConfirm().
-			Title("Try again?").
-			Affirmative("Try a different cookie").
-			Negative("Quit setup").
-			Value(&retry).
-			WithTheme(huh.ThemeCharm()).
-			Run()
-		if !retry {
+		fmt.Printf("  cookie didn't work: %s\n", verr)
+		retry, cerr := runConfirm(
+			"Try again?",
+			"",
+			"Try a different cookie",
+			"Quit setup",
+		)
+		if cerr != nil || !retry {
 			return config.Account{}, errors.New("cookie capture cancelled")
 		}
 	}
@@ -101,18 +94,19 @@ func CaptureAccount(ctx context.Context, in AccountInput) (config.Account, error
 	if name == "" {
 		name = in.DefaultName
 	}
-	if err := huh.NewInput().
-		Title("Account label").
-		Description("A short name to identify this account in logs and the dashboard.").
-		Value(&name).
-		Validate(func(s string) error {
+	name, err := runInput(
+		"Account label",
+		"A short name to identify this account in logs and the dashboard.",
+		name,
+		false,
+		func(s string) error {
 			if strings.TrimSpace(s) == "" {
 				return errors.New("name cannot be empty")
 			}
 			return nil
-		}).
-		WithTheme(huh.ThemeCharm()).
-		Run(); err != nil {
+		},
+	)
+	if err != nil {
 		return config.Account{}, err
 	}
 

@@ -13,6 +13,9 @@ config.local.*
 state.json
 .state-*.json
 
+# Backup archives
+steamgifts-bot-backup-*.zip
+
 # Log file (auto-generated next to config.yml)
 steamgifts-bot.log
 

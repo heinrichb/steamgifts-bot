@@ -32,6 +32,7 @@ type Client struct {
 	httpc     *http.Client
 	baseURL   string
 	userAgent string
+	proxyURL  string
 	limiter   *ratelimit.Limiter
 	log       *slog.Logger
 }
@@ -58,18 +59,7 @@ func WithTimeout(d time.Duration) Option {
 // WithProxy routes all requests through the given HTTP or SOCKS5 proxy.
 // The URL should be like "http://host:port" or "socks5://host:port".
 func WithProxy(proxyURL string) Option {
-	return func(c *Client) {
-		if proxyURL == "" {
-			return
-		}
-		u, err := url.Parse(proxyURL)
-		if err != nil {
-			return
-		}
-		transport := http.DefaultTransport.(*http.Transport).Clone()
-		transport.Proxy = http.ProxyURL(u)
-		c.httpc.Transport = transport
-	}
+	return func(c *Client) { c.proxyURL = proxyURL }
 }
 
 // New constructs a Client seeded with the given PHPSESSID cookie.
@@ -96,6 +86,15 @@ func New(cookie, userAgent string, opts ...Option) (*Client, error) {
 	}
 	if c.userAgent == "" {
 		c.userAgent = DefaultUserAgent
+	}
+	if c.proxyURL != "" {
+		u, err := url.Parse(c.proxyURL)
+		if err != nil {
+			return nil, fmt.Errorf("client: invalid proxy URL %q: %w", c.proxyURL, err)
+		}
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.Proxy = http.ProxyURL(u)
+		c.httpc.Transport = transport
 	}
 	if err := c.seedCookie(cookie); err != nil {
 		return nil, err

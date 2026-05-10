@@ -17,10 +17,24 @@ import (
 
 const binaryName = "steamgifts-bot"
 
+// ProgressFunc is called during an update with the current phase and
+// completion percentage (0.0–1.0) within that phase.
+// Phases: "downloading", "extracting", "installing", "done".
+type ProgressFunc func(phase string, pct float64)
+
 // Apply downloads the release asset matching the current OS/arch, extracts
 // the binary, and replaces the running executable. Returns the path to the
 // new binary on success.
 func Apply(ctx context.Context, rel Release) (string, error) {
+	return ApplyWithProgress(ctx, rel, nil)
+}
+
+// ApplyWithProgress is like Apply but calls progress at each phase.
+func ApplyWithProgress(ctx context.Context, rel Release, progress ProgressFunc) (string, error) {
+	if progress == nil {
+		progress = func(string, float64) {}
+	}
+
 	asset, err := matchAsset(rel.Assets)
 	if err != nil {
 		return "", err
@@ -42,18 +56,25 @@ func Apply(ctx context.Context, rel Release) (string, error) {
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	archivePath := filepath.Join(tmpDir, asset.Name)
-	if err := download(ctx, asset.BrowserDownloadURL, archivePath); err != nil {
+	progress("downloading", 0)
+	if err := downloadWithProgress(ctx, asset.BrowserDownloadURL, archivePath, asset.Size, func(pct float64) {
+		progress("downloading", pct)
+	}); err != nil {
 		return "", err
 	}
 
+	progress("extracting", 0)
 	newBin := filepath.Join(tmpDir, binaryName+exeSuffix())
 	if err := extract(archivePath, newBin); err != nil {
 		return "", err
 	}
 
+	progress("installing", 0)
 	if err := replaceBinary(exe, newBin); err != nil {
 		return "", err
 	}
+
+	progress("done", 1.0)
 	return exe, nil
 }
 
@@ -91,7 +112,23 @@ func matchAsset(assets []Asset) (Asset, error) {
 	return Asset{}, fmt.Errorf("update: no asset found for %s/%s", goos, goarch)
 }
 
-func download(ctx context.Context, url, dst string) error {
+type progressReader struct {
+	reader     io.Reader
+	total      int64
+	read       int64
+	onProgress func(float64)
+}
+
+func (pr *progressReader) Read(p []byte) (int, error) {
+	n, err := pr.reader.Read(p)
+	pr.read += int64(n)
+	if pr.total > 0 && pr.onProgress != nil {
+		pr.onProgress(float64(pr.read) / float64(pr.total))
+	}
+	return n, err
+}
+
+func downloadWithProgress(ctx context.Context, url, dst string, expectedSize int64, onProgress func(float64)) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("update: download request: %w", err)
@@ -107,13 +144,23 @@ func download(ctx context.Context, url, dst string) error {
 		return fmt.Errorf("update: download returned %d", resp.StatusCode)
 	}
 
+	total := resp.ContentLength
+	if total <= 0 {
+		total = expectedSize
+	}
+
 	f, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("update: create archive: %w", err)
 	}
 	defer f.Close()
 
-	if _, err := io.Copy(f, resp.Body); err != nil {
+	reader := io.Reader(resp.Body)
+	if total > 0 && onProgress != nil {
+		reader = &progressReader{reader: resp.Body, total: total, onProgress: onProgress}
+	}
+
+	if _, err := io.Copy(f, reader); err != nil {
 		return fmt.Errorf("update: write archive: %w", err)
 	}
 	return f.Close()

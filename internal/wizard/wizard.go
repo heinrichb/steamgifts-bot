@@ -1,9 +1,5 @@
 // Package wizard implements the friendly first-run setup flow.
 //
-// It is built on charmbracelet/huh so it works in any modern terminal —
-// cmd.exe, PowerShell, Windows Terminal, gnome-terminal, etc. — without
-// requiring a separate GUI binary.
-//
 // The flow is:
 //
 //  1. Welcome screen
@@ -21,8 +17,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/charmbracelet/huh"
 
 	"github.com/heinrichb/steamgifts-bot/internal/config"
 	"github.com/heinrichb/steamgifts-bot/internal/service"
@@ -53,15 +47,12 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 
 	editing := len(opts.Config.Accounts) > 0
 	if editing {
-		keepExisting := true
-		err := huh.NewConfirm().
-			Title(fmt.Sprintf("Found %d existing account(s) in your config.", len(opts.Config.Accounts))).
-			Description("Keep them and just add more, or start fresh?").
-			Affirmative("Keep existing").
-			Negative("Start fresh").
-			Value(&keepExisting).
-			WithTheme(huh.ThemeCharm()).
-			Run()
+		keepExisting, err := runConfirm(
+			fmt.Sprintf("Found %d existing account(s) in your config.", len(opts.Config.Accounts)),
+			"Keep them and just add more, or start fresh?",
+			"Keep existing",
+			"Start fresh",
+		)
 		if err != nil {
 			return Result{}, err
 		}
@@ -80,14 +71,12 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		}
 		opts.Config.Accounts = append(opts.Config.Accounts, acct)
 
-		var addAnother bool
-		err = huh.NewConfirm().
-			Title("Add another account?").
-			Affirmative("Yes, add another").
-			Negative("No, I'm done").
-			Value(&addAnother).
-			WithTheme(huh.ThemeCharm()).
-			Run()
+		addAnother, err := runConfirm(
+			"Add another account?",
+			"",
+			"Yes, add another",
+			"No, I'm done",
+		)
 		if err != nil {
 			return Result{}, err
 		}
@@ -104,15 +93,12 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		return Result{}, fmt.Errorf("the wizard produced an invalid config: %w", err)
 	}
 
-	save := true
-	err := huh.NewConfirm().
-		Title(fmt.Sprintf("Save config to:\n  %s", opts.SavePath)).
-		Description("Existing files at this path will be overwritten.").
-		Affirmative("Save").
-		Negative("Cancel").
-		Value(&save).
-		WithTheme(huh.ThemeCharm()).
-		Run()
+	save, err := runConfirm(
+		fmt.Sprintf("Save config to: %s", opts.SavePath),
+		"Existing files at this path will be overwritten.",
+		"Save",
+		"Cancel",
+	)
 	if err != nil {
 		return Result{}, err
 	}
@@ -124,7 +110,6 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	}
 
 	if err := offerService(ctx); err != nil {
-		// Service install is optional UX sugar — surface but don't fail the wizard.
 		fmt.Println("(skipped service install:", err, ")")
 	}
 
@@ -132,10 +117,9 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 }
 
 func welcome(_ context.Context) error {
-	ready := true
-	err := huh.NewConfirm().
-		Title("Welcome to steamgifts-bot 👋").
-		Description(strings.Join([]string{
+	ready, err := runConfirm(
+		"Welcome to SteamGifts Bot",
+		strings.Join([]string{
 			"This wizard will set up the bot in a few quick steps:",
 			"",
 			"  1. Sign in to steamgifts.com in your browser",
@@ -143,12 +127,10 @@ func welcome(_ context.Context) error {
 			"  3. Choose how the bot should behave",
 			"",
 			"You can always re-run this wizard with `steamgifts-bot setup`.",
-		}, "\n")).
-		Affirmative("Let's go").
-		Negative("Quit").
-		Value(&ready).
-		WithTheme(huh.ThemeCharm()).
-		Run()
+		}, "\n"),
+		"Let's go",
+		"Quit",
+	)
 	if err != nil {
 		return err
 	}
@@ -159,44 +141,51 @@ func welcome(_ context.Context) error {
 }
 
 func globalSettings(cfg *config.Config) error {
-	min := strconv.Itoa(deref(cfg.Defaults.MinPoints, 50))
-	pause := strconv.Itoa(deref(cfg.Defaults.PauseMinutes, 15))
-	maxEntries := strconv.Itoa(deref(cfg.Defaults.MaxEntriesPerRun, 25))
-	pinned := derefBool(cfg.Defaults.EnterPinned)
+	if err := runNote("Global defaults",
+		"These apply to every account unless you override them later.\nYou can edit config.yml by hand any time."); err != nil {
+		return err
+	}
 
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewNote().
-				Title("Global defaults").
-				Description("These apply to every account unless you override them later. You can edit `config.yml` by hand any time."),
+	min, err := runInput(
+		"Minimum points to keep",
+		"The bot will stop entering when spending more would drop you below this. (0-400)",
+		strconv.Itoa(deref(cfg.Defaults.MinPoints, 50)),
+		false,
+		intRange(0, 400),
+	)
+	if err != nil {
+		return err
+	}
 
-			huh.NewInput().
-				Title("Minimum points to keep").
-				Description("The bot will stop entering when spending more would drop you below this. (0–400)").
-				Value(&min).
-				Validate(intRange(0, 400)),
+	pause, err := runInput(
+		"Pause between scans (minutes)",
+		"How long to wait between scan cycles. 15 is a friendly default.",
+		strconv.Itoa(deref(cfg.Defaults.PauseMinutes, 15)),
+		false,
+		intRange(1, 1440),
+	)
+	if err != nil {
+		return err
+	}
 
-			huh.NewInput().
-				Title("Pause between scans (minutes)").
-				Description("How long to wait between scan cycles. 15 is a friendly default.").
-				Value(&pause).
-				Validate(intRange(1, 1440)),
+	maxEntries, err := runInput(
+		"Max entries per scan",
+		"Safety cap. 25 is plenty for most accounts.",
+		strconv.Itoa(deref(cfg.Defaults.MaxEntriesPerRun, 25)),
+		false,
+		intRange(0, 1000),
+	)
+	if err != nil {
+		return err
+	}
 
-			huh.NewInput().
-				Title("Max entries per scan").
-				Description("Safety cap. 25 is plenty for most accounts.").
-				Value(&maxEntries).
-				Validate(intRange(0, 1000)),
-
-			huh.NewConfirm().
-				Title("Include pinned giveaways?").
-				Description("Pinned/featured giveaways are usually high-entry. Most users leave this off.").
-				Affirmative("Include them").
-				Negative("Skip them").
-				Value(&pinned),
-		),
-	).WithTheme(huh.ThemeCharm())
-	if err := form.Run(); err != nil {
+	pinned, err := runConfirm(
+		"Include pinned giveaways?",
+		"Pinned/featured giveaways are usually high-entry. Most users leave this off.",
+		"Include them",
+		"Skip them",
+	)
+	if err != nil {
 		return err
 	}
 
@@ -211,15 +200,13 @@ func offerService(_ context.Context) error {
 	if !service.Supported() {
 		return nil
 	}
-	install := true
-	if err := huh.NewConfirm().
-		Title("Install as a background service?").
-		Description(serviceDescription()).
-		Affirmative("Yes, install").
-		Negative("No thanks").
-		Value(&install).
-		WithTheme(huh.ThemeCharm()).
-		Run(); err != nil {
+	install, err := runConfirm(
+		"Install as a background service?",
+		serviceDescription(),
+		"Yes, install",
+		"No thanks",
+	)
+	if err != nil {
 		return err
 	}
 	if !install {
@@ -229,7 +216,7 @@ func offerService(_ context.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("✓ Installed:", path)
+	fmt.Println("Installed:", path)
 	fmt.Println("  Uninstall any time with: steamgifts-bot service uninstall")
 	return nil
 }
@@ -237,11 +224,11 @@ func offerService(_ context.Context) error {
 func serviceDescription() string {
 	switch service.Platform() {
 	case "windows":
-		return "I'll add a small script to your Startup folder so the bot starts minimized when you log in. No admin required, fully reversible."
+		return "Adds a small script to your Startup folder so the bot starts\nminimized when you log in. No admin required, fully reversible."
 	case "linux":
-		return "I'll write a systemd user unit and enable it. Runs as you, fully reversible."
+		return "Writes a systemd user unit and enables it.\nRuns as you, fully reversible."
 	case "darwin":
-		return "I'll write a LaunchAgent plist so the bot starts on login. Runs as you, fully reversible."
+		return "Writes a LaunchAgent plist so the bot starts on login.\nRuns as you, fully reversible."
 	default:
 		return "Installs a small launcher so the bot starts automatically."
 	}

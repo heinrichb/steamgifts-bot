@@ -1,8 +1,29 @@
 # Contributing
 
-Thanks for your interest! This project is small and friendly. PRs that fix bugs, improve UX, or expand test coverage are always welcome.
+Thanks for your interest in steamgifts-bot!
 
-## Quick start
+## Bug reports
+
+Found something broken? Open an issue with:
+
+- What happened and what you expected
+- Steps to reproduce the problem
+- Your OS and Go version
+- Relevant lines from `steamgifts-bot.log` if available
+
+The more detail you include, the faster it gets fixed.
+
+## Feature requests
+
+Have an idea for something new? Open an issue describing:
+
+- The problem you're trying to solve
+- Why the current behavior doesn't cover it
+- A concrete example of how the feature would work
+
+Please search existing issues before opening a new one.
+
+## Development setup
 
 ```bash
 git clone https://github.com/heinrichb/steamgifts-bot.git
@@ -10,14 +31,14 @@ cd steamgifts-bot
 make test
 ```
 
-## Requirements
+### Requirements
 
 - Go 1.26+ (the version in `go.mod` is the floor)
 - `golangci-lint` (install with `brew install golangci-lint` or [the official script](https://golangci-lint.run/welcome/install/))
 - `make` for the convenience targets (optional — every target is one `go` command underneath)
 - Docker (optional, only needed if you're touching the Dockerfile)
 
-## Make targets
+### Make targets
 
 | Target                  | What it does                                                    |
 | ----------------------- | --------------------------------------------------------------- |
@@ -32,14 +53,14 @@ make test
 | `make docker`           | Build the Docker image as `steamgifts-bot:dev`                  |
 | `make refresh-fixtures` | Fetch real steamgifts pages into `testdata/` (needs config.yml) |
 
-## Project layout
+### Project layout
 
 ```
 cmd/steamgifts-bot/    # CLI entrypoint (main.go + Windows console helpers)
 cmd/refresh-fixtures/  # dev tool: fetch real HTML fixtures
 internal/
   account/             # per-account runner + orchestrator
-  cli/                 # cobra command tree + menu + backup
+  cli/                 # cobra command tree + TUI app + menu + backup
   client/              # HTTP client with retry + proxy
   config/              # YAML schema + validation + scorer weights
   log/                 # slog wrapper with dual output + redaction
@@ -50,22 +71,20 @@ internal/
   service/             # systemd / Startup folder / LaunchAgent install
   state/               # persistent JSON state (last sync times)
   steamgifts/          # HTML parser + entry submission + sync + wins
-  update/              # GitHub Releases version check
+  update/              # GitHub Releases version check + self-update
   web/                 # embedded dashboard (HTML templates)
   wizard/              # first-run TUI flow
 deploy/helm/           # Kubernetes Helm chart
 ```
 
-The `steamgifts/` package is where 90% of bug reports will land. It owns the HTML parser and the entry POST.
-
-## Testing conventions
+### Testing conventions
 
 - **Unit tests live alongside the code** as `*_test.go`.
 - **Parser tests** load HTML from `internal/steamgifts/testdata/*.html`. When steamgifts.com changes its markup, fix it here first by saving a current page and adding a focused test for whatever broke.
 - **HTTP code** uses `httptest.NewServer` rather than mocking. The `client.WithBaseURL` option exists specifically for this.
-- **Don't mock cookies** in entry tests — we want the real net/http cookie jar to round-trip them, that's a class of bug we've burned on before.
+- **Don't mock cookies** in entry tests — we want the real net/http cookie jar to round-trip them.
 
-## Commit messages
+### Commit messages
 
 We use [Conventional Commits](https://www.conventionalcommits.org/):
 
@@ -77,24 +96,6 @@ test(client): cover non-2xx body propagation
 ```
 
 GoReleaser uses these prefixes to group the changelog automatically.
-
-## Pull request checklist
-
-- [ ] `make test` is green
-- [ ] `make lint` is clean
-- [ ] New behavior has a test (or there's a comment explaining why one isn't possible)
-- [ ] If you touched user-facing flags, config keys, or wizard copy, the README is updated
-- [ ] If it's a behavior change, add a line to `CHANGELOG.md` under `[Unreleased]`
-
-## Adding new parser fixtures
-
-When the steamgifts HTML changes:
-
-1. Open the affected page logged in
-2. Right-click → Save As → "HTML, complete" is fine
-3. Trim the saved file down to just the relevant `<div class="giveaway__row-...">` blocks (keep the page small — fixtures are read every test run)
-4. Drop it in `internal/steamgifts/testdata/`
-5. Add a test that asserts the new shape
 
 ## Releasing
 

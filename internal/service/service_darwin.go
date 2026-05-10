@@ -45,10 +45,7 @@ func Install() (string, error) {
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
-    <dict>
-        <key>SuccessfulExit</key>
-        <false/>
-    </dict>
+    <true/>
     <key>StandardOutPath</key>
     <string>/tmp/steamgifts-bot.log</string>
     <key>StandardErrorPath</key>
@@ -88,6 +85,10 @@ func IsInstalled() bool {
 	_, err = os.Stat(path)
 	return err == nil
 }
+
+// IsActive reports whether the LaunchAgent appears to be loaded.
+// On macOS there is no single cheap check, so installed implies active.
+func IsActive() bool { return IsInstalled() }
 
 // Status reports whether the LaunchAgent is installed.
 func Status() (string, error) {

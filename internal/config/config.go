@@ -22,6 +22,9 @@ import (
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
+// MaxPoints is the maximum points a steamgifts account can hold.
+const MaxPoints = 400
+
 // ScorerWeights controls the relative priority of each scoring component.
 // Zero values fall back to built-in defaults in the scorer package.
 type ScorerWeights struct {
@@ -37,7 +40,9 @@ type Config struct {
 	Defaults          AccountSettings `yaml:"defaults"              mapstructure:"defaults"`
 	Filters           []string        `yaml:"filters"               mapstructure:"filters"`
 	Accounts          []Account       `yaml:"accounts"              mapstructure:"accounts"`
-	AutoUpdate        *bool           `yaml:"auto_update,omitempty" mapstructure:"auto_update"`
+	AutoUpdate               *bool `yaml:"auto_update,omitempty"                 mapstructure:"auto_update"`
+	UpdateCheckIntervalHours *int  `yaml:"update_check_interval_hours,omitempty" mapstructure:"update_check_interval_hours"`
+	SplashScreen             *bool `yaml:"splash_screen,omitempty"               mapstructure:"splash_screen"`
 	DiscordWebhookURL string          `yaml:"discord_webhook_url"   mapstructure:"discord_webhook_url"`
 	TelegramBotToken  string          `yaml:"telegram_bot_token"    mapstructure:"telegram_bot_token"`
 	TelegramChatID    string          `yaml:"telegram_chat_id"      mapstructure:"telegram_chat_id"`
@@ -47,6 +52,23 @@ type Config struct {
 // AutoUpdateEnabled returns whether automatic updates are enabled (default: true).
 func (c *Config) AutoUpdateEnabled() bool {
 	return c.AutoUpdate == nil || *c.AutoUpdate
+}
+
+// UpdateCheckInterval returns the interval between background update checks (default: 6h).
+func (c *Config) UpdateCheckInterval() time.Duration {
+	if c.UpdateCheckIntervalHours == nil {
+		return 6 * time.Hour
+	}
+	h := *c.UpdateCheckIntervalHours
+	if h < 1 {
+		return 1 * time.Hour
+	}
+	return time.Duration(h) * time.Hour
+}
+
+// SplashScreenEnabled returns whether the splash screen is shown on launch (default: true).
+func (c *Config) SplashScreenEnabled() bool {
+	return c.SplashScreen == nil || *c.SplashScreen
 }
 
 // AccountSettings holds the per-account knobs that may be set globally
@@ -236,8 +258,8 @@ func (c *Config) Validate() error {
 		}
 
 		resolved := c.Resolved(i)
-		if mp := resolved.MinPointsValue(); mp < 0 || mp > 400 {
-			return fmt.Errorf("accounts[%d] (%s): min_points %d out of range [0,400]", i, name, mp)
+		if mp := resolved.MinPointsValue(); mp < 0 || mp > MaxPoints {
+			return fmt.Errorf("accounts[%d] (%s): min_points %d out of range [0,%d]", i, name, mp, MaxPoints)
 		}
 		if pause := resolved.PauseDuration(); pause < time.Minute {
 			return fmt.Errorf("accounts[%d] (%s): pause_minutes must be >= 1", i, name)

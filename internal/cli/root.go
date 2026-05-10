@@ -13,24 +13,24 @@ import (
 	"log/slog"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
 	"github.com/heinrichb/steamgifts-bot/internal/config"
-	"github.com/heinrichb/steamgifts-bot/internal/service"
 	"github.com/heinrichb/steamgifts-bot/internal/update"
 	"github.com/heinrichb/steamgifts-bot/internal/wizard"
 )
 
+const updateAppliedMsg = "✓ Updated. Please restart the application to use the new version."
+
+var buildVersion string
+
 func init() {
-	// Cobra's mousetrap blocks CLI apps launched by double-clicking on
-	// Windows. We explicitly support that launch mode (the wizard runs
-	// on first launch), so disable it.
 	cobra.MousetrapHelpText = ""
 }
 
-// NewRootCmd builds the cobra command tree. Version metadata is injected
-// from main.go (which gets it from -ldflags at build time).
 func NewRootCmd(version, commit, date string) *cobra.Command {
+	buildVersion = version
 	root := &cobra.Command{
 		Use:   "steamgifts-bot",
 		Short: "Multi-account giveaway bot for steamgifts.com",
@@ -61,7 +61,7 @@ background service, or run it in Docker.`,
 				fmt.Fprintln(os.Stderr, "")
 				return runSetup(cmd, args)
 			}
-			return runMenu(cmd, args)
+			return runMenu(cmd, version)
 		},
 	}
 
@@ -82,63 +82,41 @@ background service, or run it in Docker.`,
 	return root
 }
 
-// runMenu shows the interactive menu and dispatches the chosen action.
-func runMenu(cmd *cobra.Command, args []string) error {
-	updateResult := waitForUpdateCheck()
+func runMenu(cmd *cobra.Command, version string) error {
+	configPath, _ := cmd.Flags().GetString("config")
 
-	// Auto-update: if enabled and an update is available, apply it.
-	if updateResult != nil && updateResult.Available {
-		configPath, _ := cmd.Flags().GetString("config")
-		cfg, _, _ := loadConfig(configPath)
-		if cfg != nil && cfg.AutoUpdateEnabled() {
-			fmt.Fprintf(cmd.OutOrStdout(), "⚡ Auto-updating to %s...\n", updateResult.LatestVersion)
-			if path, err := update.Apply(cmd.Context(), updateResult.Release); err != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Auto-update failed: %v\n", err)
-				fmt.Fprintln(cmd.ErrOrStderr(), "Continuing with current version.")
-			} else {
-				fmt.Fprintf(cmd.OutOrStdout(), "✓ Updated: %s\n", path)
-				fmt.Fprintln(cmd.OutOrStdout(), "Please restart the application to use the new version.")
-				return nil
-			}
-		}
+	showSplash := true
+	if cfg, _, err := loadConfig(configPath); err == nil && cfg != nil {
+		showSplash = cfg.SplashScreenEnabled()
 	}
 
-	choice, err := showMenu(updateResult)
-	if err != nil {
-		return err
-	}
-	switch choice {
-	case menuRun:
-		return runBotFromMenu(cmd, false)
-	case menuRunDryRun:
-		return runBotFromMenu(cmd, true)
-	case menuCheck:
-		return runCheck(cmd, args)
-	case menuAddAccount:
-		return addAccountInteractive(cmd)
-	case menuBackup:
-		return newBackupCreateCmd().RunE(cmd, nil)
-	case menuServiceInstall:
-		path, serr := service.Install()
-		if serr != nil {
-			return serr
+	for {
+		model := newAppModel(version, configPath, showSplash)
+		prog := tea.NewProgram(model, tea.WithAltScreen())
+		result, err := prog.Run()
+		if err != nil {
+			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "✓ installed: %s\n", path)
-		return nil
-	case menuServiceUninstall:
-		if serr := service.Uninstall(); serr != nil {
-			return serr
+
+		app := result.(appModel)
+
+		if app.updateApplied {
+			fmt.Fprintln(cmd.OutOrStdout(), updateAppliedMsg)
+			return nil
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "✓ background service uninstalled")
-		return nil
-	case menuUpdate:
-		return runUpdate(cmd, updateResult)
-	case menuSetup:
-		return runSetup(cmd, args)
-	case menuQuit:
-		return nil
-	default:
-		return nil
+
+		switch app.action {
+		case exitNone:
+			return nil
+		case exitRun:
+			return runBotFromMenu(cmd, false)
+		case exitRunDryRun:
+			return runBotFromMenu(cmd, true)
+		case exitUpdate:
+			return runUpdate(cmd, app.updateResult)
+		}
+
+		showSplash = false
 	}
 }
 
@@ -153,7 +131,7 @@ func runUpdate(cmd *cobra.Command, result *update.Result) error {
 		return fmt.Errorf("update failed: %w", err)
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "✓ Updated: %s\n", path)
-	fmt.Fprintln(cmd.OutOrStdout(), "Please restart the application to use the new version.")
+	fmt.Fprintln(cmd.OutOrStdout(), updateAppliedMsg)
 	return nil
 }
 
@@ -183,6 +161,4 @@ func addAccountInteractive(cmd *cobra.Command) error {
 	return nil
 }
 
-// errExitSilent is returned by subcommands that have already printed a
-// human-readable error and just want a non-zero exit.
 var errExitSilent = errors.New("")

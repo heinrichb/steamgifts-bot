@@ -75,6 +75,11 @@ func IsInstalled() bool {
 	return err == nil
 }
 
+// IsActive reports whether the bot process appears to be running.
+// On Windows there is no reliable way to check without enumerating
+// processes, so we approximate: installed implies likely active.
+func IsActive() bool { return IsInstalled() }
+
 // Status reports whether the startup .bat exists.
 func Status() (string, error) {
 	path, err := startupPath()

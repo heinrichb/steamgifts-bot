@@ -42,7 +42,7 @@ Wants=network-online.target
 
 [Service]
 ExecStart="%s" run
-Restart=on-failure
+Restart=always
 RestartSec=30
 Environment=NO_COLOR=1
 
@@ -89,6 +89,12 @@ func IsInstalled() bool {
 	}
 	_, err = os.Stat(path)
 	return err == nil
+}
+
+// IsActive reports whether the systemd user unit is currently running.
+func IsActive() bool {
+	out, _ := exec.Command("systemctl", "--user", "is-active", unitName).CombinedOutput()
+	return strings.TrimSpace(string(out)) == "active"
 }
 
 // Status returns a human-readable status line.

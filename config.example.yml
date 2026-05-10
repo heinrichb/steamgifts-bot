@@ -75,6 +75,17 @@ filters:
 #   level: 3.0            # boost for level-locked giveaways (fewer eligible users)
 #   cost_efficiency: 1.0  # mild preference for cheaper entries to spread points
 
+# --- Auto-Update ---
+# Automatically download and apply updates when a new version is released.
+# When running interactively, updates apply on menu exit.
+# When running as a background service, the bot checks periodically and
+# restarts itself after applying an update.
+# auto_update: true
+
+# How often the background service checks for updates (in hours).
+# Only applies when running as a service (steamgifts-bot run).
+# update_check_interval_hours: 6
+
 # --- Observability (optional) ---
 # Prometheus metrics endpoint. Pass --metrics-addr :9090 (or any port)
 # to expose /metrics for scraping by Prometheus/Grafana.

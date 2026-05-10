@@ -7,8 +7,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-
 	"github.com/heinrichb/steamgifts-bot/internal/account"
 )
 
@@ -64,21 +62,22 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-var (
-	titleStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212"))
-	headerStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("245"))
-	okStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("82"))
-	errStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
-	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-)
-
 func (m dashboardModel) View() string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("steamgifts-bot — live status"))
-	b.WriteString("  ")
-	b.WriteString(dimStyle.Render(fmt.Sprintf("uptime %s", time.Since(m.started).Round(time.Second))))
+
+	title := gradientMulti("SteamGifts Bot", brandColors...)
+	b.WriteString("  " + title + "  " + styleDim.Render("v"+buildVersion))
+	b.WriteString("  " + styleDim.Render(fmt.Sprintf("uptime %s", time.Since(m.started).Round(time.Second))))
+	b.WriteString("\n")
+
+	w := m.width
+	if w < 40 {
+		w = 80
+	}
+	b.WriteString(styleDim.Render(strings.Repeat("─", min(w, 120))))
 	b.WriteString("\n\n")
-	b.WriteString(headerStyle.Render(fmt.Sprintf("%-16s %-16s %-8s %-12s %-22s %s",
+
+	b.WriteString(styleHeader.Render(fmt.Sprintf("  %-16s %-16s %-8s %-12s %-22s %s",
 		"ACCOUNT", "USERNAME", "POINTS", "ENTRIES", "NEXT RUN", "LAST")))
 	b.WriteString("\n")
 
@@ -87,13 +86,13 @@ func (m dashboardModel) View() string {
 		if !st.NextRun.IsZero() {
 			next = humanizeUntil(st.NextRun)
 		}
-		last := dimStyle.Render("-")
+		last := styleDim.Render("-")
 		if st.LastError != "" {
-			last = errStyle.Render("ERR: " + truncate(st.LastError, 60))
+			last = styleErr.Render("ERR: " + truncate(st.LastError, 60))
 		} else if !st.LastRun.IsZero() {
-			last = okStyle.Render(humanizeAgo(st.LastRun))
+			last = styleOK.Render(humanizeAgo(st.LastRun))
 		}
-		fmt.Fprintf(&b, "%-16s %-16s %-8d %-12s %-22s %s\n",
+		fmt.Fprintf(&b, "  %-16s %-16s %-8d %-12s %-22s %s\n",
 			truncate(st.Name, 15),
 			truncate(orDash(st.Username), 15),
 			st.Points,
@@ -104,7 +103,9 @@ func (m dashboardModel) View() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("press q to quit"))
+	b.WriteString(styleDim.Render(strings.Repeat("─", min(w, 120))))
+	b.WriteString("\n")
+	b.WriteString("  " + footerHint("q", "quit"))
 	return b.String()
 }
 
