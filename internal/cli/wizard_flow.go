@@ -371,9 +371,9 @@ func (m wizardFlowModel) Update(msg tea.Msg) (appPage, tea.Cmd) {
 		if m.confirm.done && m.confirm.value {
 			path, err := service.Install()
 			if err != nil {
-				m.resultMsg += "\n" + statusErr("Service install failed: " + err.Error())
+				m.resultMsg += "\n" + statusErr("Service install failed: "+err.Error())
 			} else {
-				m.resultMsg += "\n" + statusOK("Service installed: " + path)
+				m.resultMsg += "\n" + statusOK("Service installed: "+path)
 			}
 			m.enterStep(wizResult)
 		}

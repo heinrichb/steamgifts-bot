@@ -7,7 +7,7 @@ var (
 	brandMid    = "#3b82f6"
 	brandTo     = "#d946ef"
 
-	styleHeader = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("245"))
+	styleHeader  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("245"))
 	styleDim     = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	styleOK      = lipgloss.NewStyle().Foreground(lipgloss.Color("82"))
 	styleOKBold  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("82"))

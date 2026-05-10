@@ -21,7 +21,6 @@ import (
 	sg "github.com/heinrichb/steamgifts-bot/internal/steamgifts"
 )
 
-
 // Runner runs the bot loop for one account.
 type Runner struct {
 	Name          string

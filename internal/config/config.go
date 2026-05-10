@@ -37,16 +37,16 @@ type ScorerWeights struct {
 
 // Config is the root user-facing configuration object.
 type Config struct {
-	Defaults          AccountSettings `yaml:"defaults"              mapstructure:"defaults"`
-	Filters           []string        `yaml:"filters"               mapstructure:"filters"`
-	Accounts          []Account       `yaml:"accounts"              mapstructure:"accounts"`
-	AutoUpdate               *bool `yaml:"auto_update,omitempty"                 mapstructure:"auto_update"`
-	UpdateCheckIntervalHours *int  `yaml:"update_check_interval_hours,omitempty" mapstructure:"update_check_interval_hours"`
-	SplashScreen             *bool `yaml:"splash_screen,omitempty"               mapstructure:"splash_screen"`
-	DiscordWebhookURL string          `yaml:"discord_webhook_url"   mapstructure:"discord_webhook_url"`
-	TelegramBotToken  string          `yaml:"telegram_bot_token"    mapstructure:"telegram_bot_token"`
-	TelegramChatID    string          `yaml:"telegram_chat_id"      mapstructure:"telegram_chat_id"`
-	Scorer            ScorerWeights   `yaml:"scorer"                mapstructure:"scorer"`
+	Defaults                 AccountSettings `yaml:"defaults"              mapstructure:"defaults"`
+	Filters                  []string        `yaml:"filters"               mapstructure:"filters"`
+	Accounts                 []Account       `yaml:"accounts"              mapstructure:"accounts"`
+	AutoUpdate               *bool           `yaml:"auto_update,omitempty"                 mapstructure:"auto_update"`
+	UpdateCheckIntervalHours *int            `yaml:"update_check_interval_hours,omitempty" mapstructure:"update_check_interval_hours"`
+	SplashScreen             *bool           `yaml:"splash_screen,omitempty"               mapstructure:"splash_screen"`
+	DiscordWebhookURL        string          `yaml:"discord_webhook_url"   mapstructure:"discord_webhook_url"`
+	TelegramBotToken         string          `yaml:"telegram_bot_token"    mapstructure:"telegram_bot_token"`
+	TelegramChatID           string          `yaml:"telegram_chat_id"      mapstructure:"telegram_chat_id"`
+	Scorer                   ScorerWeights   `yaml:"scorer"                mapstructure:"scorer"`
 }
 
 // AutoUpdateEnabled returns whether automatic updates are enabled (default: true).
