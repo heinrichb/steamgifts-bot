@@ -11,7 +11,7 @@ type rgb struct{ r, g, b float64 }
 
 func hexToRGB(hex string) rgb {
 	var r, g, b int
-	fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b)
+	_, _ = fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b)
 	return rgb{float64(r), float64(g), float64(b)}
 }
 

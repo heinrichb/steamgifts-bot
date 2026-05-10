@@ -72,8 +72,7 @@ func newMenuModelWithState(cfg *config.Config, updateResult *update.Result, svcI
 func (m menuModel) Init() tea.Cmd { return nil }
 
 func (m menuModel) Update(msg tea.Msg) (menuModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
 		case "up", "w":
 			if m.cursor > 0 {

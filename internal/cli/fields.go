@@ -83,7 +83,7 @@ func (f *inputField) reset(title, desc, value string, password bool, validate fu
 	ti.Focus()
 	ti.PromptStyle = styleMenuCursor
 	ti.TextStyle = styleFooterDesc
-	ti.CursorStyle = styleMenuCursor
+	ti.Cursor.Style = styleMenuCursor
 	if password {
 		ti.EchoMode = textinput.EchoPassword
 	}

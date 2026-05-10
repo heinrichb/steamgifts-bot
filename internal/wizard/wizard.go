@@ -261,4 +261,3 @@ func deref(p *int, fallback int) int {
 	}
 	return *p
 }
-func derefBool(p *bool) bool { return p != nil && *p }

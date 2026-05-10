@@ -101,7 +101,6 @@ type logModel struct {
 	lines        []string
 	file         *os.File
 	reader       *bufio.Reader
-	offset       int64
 	width        int
 	height       int
 	scroll       int

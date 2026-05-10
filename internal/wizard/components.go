@@ -13,9 +13,7 @@ var (
 	wcBrand  = lipgloss.Color("#3b82f6")
 	wcPink   = lipgloss.Color("#d946ef")
 	wcCyan   = lipgloss.Color("#06b6d4")
-	wcGreen  = lipgloss.Color("82")
 	wcRed    = lipgloss.Color("196")
-	wcDim    = lipgloss.Color("240")
 	wcNormal = lipgloss.Color("252")
 	wcMuted  = lipgloss.Color("245")
 
@@ -25,7 +23,6 @@ var (
 	wcSelected    = lipgloss.NewStyle().Foreground(wcBrand).Bold(true)
 	wcUnselected  = lipgloss.NewStyle().Foreground(wcNormal)
 	wcErrStyle    = lipgloss.NewStyle().Foreground(wcRed)
-	wcDimStyle    = lipgloss.NewStyle().Foreground(wcDim)
 	wcFooterKey   = lipgloss.NewStyle().Foreground(wcBrand).Bold(true)
 	wcFooterDesc  = lipgloss.NewStyle().Foreground(wcMuted)
 )
@@ -55,8 +52,7 @@ func newConfirm(title, description, affirm, deny string) confirmModel {
 func (m confirmModel) Init() tea.Cmd { return nil }
 
 func (m confirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
 		case "up", "k", "left", "h":
 			m.cursor = 0
@@ -132,7 +128,7 @@ func newInput(title, description, value string, echoPassword bool, validate func
 	ti.Focus()
 	ti.PromptStyle = lipgloss.NewStyle().Foreground(wcPink)
 	ti.TextStyle = lipgloss.NewStyle().Foreground(wcNormal)
-	ti.CursorStyle = lipgloss.NewStyle().Foreground(wcCyan)
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(wcCyan)
 	if echoPassword {
 		ti.EchoMode = textinput.EchoPassword
 	}
@@ -148,8 +144,7 @@ func newInput(title, description, value string, echoPassword bool, validate func
 func (m inputModel) Init() tea.Cmd { return textinput.Blink }
 
 func (m inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
 		case "enter":
 			val := m.input.Value()
